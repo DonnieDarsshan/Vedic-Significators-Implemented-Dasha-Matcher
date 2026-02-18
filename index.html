@@ -1,0 +1,1980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vedic Significators To Dasha Matcher</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+  --bg-main: radial-gradient(circle at top,#022c22 0%,#000000 70%);
+  --panel:#021b16;
+  --border:#10b981;
+  --soft:#064e3b;
+  --text:#ecfdf5;
+  --accent:#ffff00;
+}
+
+body{
+  background:var(--bg-main);
+  color:var(--text);
+  font-family:Segoe UI,Arial,sans-serif;
+  padding:20px;
+}
+
+h2{
+  text-align:center;
+  font-size:34px;
+  font-weight:1000;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  background:linear-gradient(90deg,#10b981,#d4af37);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+input[type="date"]{
+  background:#010a08;
+  color:#ecfdf5;
+  border:1px solid #10b981;
+  padding:6px 10px;
+  font-weight:700;
+}
+
+
+
+button{
+  background:linear-gradient(135deg,#10b981,#d4af37);
+  border:none;
+  color:#021b16;
+  padding:8px 16px;
+  font-weight:900;
+  cursor:pointer;
+  margin:6px;
+}
+
+.controls{
+  text-align:center;
+  margin:14px 0;
+}
+
+.pivotBar{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+  padding:10px 14px;
+  background:linear-gradient(180deg,#021b16,#010a08);
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-weight:900;
+  color:var(--accent);
+}
+
+.pivotBar label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  cursor:pointer;
+}
+
+
+.pivotBar select{
+  background:#010a08;
+  color:#ecfdf5;
+  border:1px solid #10b981;
+  padding:4px 8px;
+  font-weight:700;
+}
+
+
+/* SOUTH INDIAN KUNDALI */
+#siKundali{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(4,1fr);
+  width:520px;
+  aspect-ratio:1/1;
+  background:var(--panel);
+  border:2px solid var(--border);
+}
+
+.siCell{
+  border:1px solid var(--soft);
+  padding:10px;
+  position:relative;
+  font-size:13px;
+}
+
+.siCenter{
+  background:#010a08;
+}
+
+.siSign{
+  position:absolute;
+  bottom:4px;
+  right:6px;
+  font-size:13px;
+  font-weight:800;
+  color:var(--accent);
+}
+
+.siHouse{
+  position:absolute;
+  top:4px;
+  left:6px;
+  font-size:14px;
+  font-weight:900;
+  color:#fef3c7;
+}
+
+
+
+ಮಹಾದಶೆ – ಶನಿ (2,3,5,6,8,9,10,11,12) 2010-ಜನವರಿ → 2029-ಜನವರಿ
+
+ಮಹಾದಶೆ – ಶನಿ 		(2,3,5,6,8,9,10,11,12) 			2010-ಜನವರಿ 	→→→ 	 2029-ಜನವರಿ
+
+.vimSym{
+  display:inline-block;
+  width:28px;
+  text-align:center;
+  margin-right:12px;
+  font-weight:900;
+}
+
+
+
+.siList{
+  margin-top:18px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Vedic Significators To Dasha Matcher</h2>
+
+<div class="controls">
+  <button onclick="loadSwissJSON()">Load Swiss Ephemeris</button>
+</div>
+
+<div class="pivotBar">
+  <span>Pivot :</span>
+  <select id="kundaliPivot"></select>
+
+  <label><input type="checkbox" id="sign2signMode"> Sign-to-Sign</label>
+  <label><input type="checkbox" id="kpMode" checked> KP (0°)</label>
+  <label><input type="checkbox" id="vedicMode" > Vedic (15°)</label>
+  <label><input type="checkbox" id="originalASC" checked> Original ASC</label>
+  <label><input type="checkbox" id="showCusps" checked> Show Cusps</label>
+
+
+  
+</div>
+
+
+
+<div style="display:flex;justify-content:center">
+  <div id="siKundali"></div>
+</div>
+
+<div id="sigOptions" style="
+  display:flex;
+  justify-content:center;
+  gap:30px;
+  margin-top:15px;
+  padding:12px;
+  background:linear-gradient(180deg,#021b16,#010a08);
+  border-top:1px solid #10b981;
+  border-bottom:1px solid #10b981;
+  font-weight:900;
+  color:#d4af37;
+">
+  <label><input type="checkbox" id="useConjPlanets"> Conjunct Planets</label>
+  <label><input type="checkbox" id="useAspects" > Aspects</label>
+  <label><input type="checkbox" id="useConjCusps" checked> Conjunct Cuspal</label>
+  <label><input type="checkbox" id="splitSig"> Split</label>
+  <label><input type="checkbox" id="splitSig2" checked> Split 2</label>
+
+</div>
+
+
+
+
+
+
+<div style="text-align:center;margin-top:25px">
+  <button onclick="toggleSignificators()">SIGNIFICATORS</button>
+</div>
+
+<div id="sigContainer" style="margin-top:20px;display:none;flex-direction:column;align-items:center;gap:20px"></div>
+
+
+<div id="vimOptionsBar" style="
+  display:flex;
+  justify-content:center;
+  gap:30px;
+  margin-top:25px;
+  padding:10px;
+  background:linear-gradient(180deg,#021b16,#010a08);
+  border-top:2px solid #10b981;
+  border-bottom:2px solid #10b981;
+  font-weight:900;
+  color:#d4af37;
+">
+  <label><input type="checkbox" id="hideVimDates" checked> Hide Dates</label>
+<label><input type="checkbox" id="useMonthNames" checked> Month</label>
+<label><input type="checkbox" id="knVimToggle" checked> KN</label>
+
+</div>
+
+
+
+
+
+
+
+
+<div style="
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  margin-top:20px;
+  padding:10px;
+  background:linear-gradient(180deg,#021b16,#010a08);
+  border-top:1px solid #10b981;
+  border-bottom:1px solid #10b981;
+  font-weight:900;
+  color:#d4af37;
+">
+  <button onclick="setVimToday()">Current Transit</button>
+  <input type="date" id="vimEventDate">
+  <button onclick="findVimTransit()">Find</button>
+  <span id="vimEventResult"></span>
+
+<button onclick="shiftVim(-1)">◀</button>
+
+<select id="vimCalibStep" style="
+  background:#010a08;
+  color:#ecfdf5;
+  border:1px solid #10b981;
+  padding:4px 8px;
+  font-weight:900;
+">
+  <option value="90">3 months</option>
+  <option value="45">1.5 months</option>
+  <option value="30">1 month</option>
+  <option value="15">15 days</option>
+  <option value="10">10 days</option>
+  <option value="5">5 days</option>
+  <option value="1">1 day</option>
+</select>
+
+<button onclick="shiftVim(1)">▶</button>
+</div>
+
+
+
+
+
+
+
+
+
+
+<div id="vimshottariContainer" style="
+  margin-top:30px;
+  padding:20px;
+  border-top:2px solid #10b981;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-weight:700;
+  font-family:Consolas, monospace, 'Noto Sans Kannada';
+  width:960px;
+  margin-left:auto;
+  margin-right:auto;
+"></div>
+
+
+
+
+
+
+
+
+
+<script>
+const signs=["","Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+             "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+
+const planets=[
+  "Lagna",
+  "Surya","Chandra","Mangala","Rahu",
+  "Jupiter","Saturn","Budha","Ketu","Venus",
+  "1 CSL","2 CSL","3 CSL","4 CSL","5 CSL","6 CSL",
+  "7 CSL","8 CSL","9 CSL","10 CSL","11 CSL","12 CSL"
+];
+
+
+const SI_SIGNS=[
+  "Pisces","Aries","Taurus","Gemini",
+  "Aquarius","","","Cancer",
+  "Capricorn","","","Leo",
+  "Sagittarius","Scorpio","Libra","Virgo"
+];
+
+const ZODIAC_ORDER=[
+  "Aries","Taurus","Gemini","Cancer",
+  "Leo","Virgo","Libra","Scorpio",
+  "Sagittarius","Capricorn","Aquarius","Pisces"
+];
+
+
+
+
+
+const NAKSHATRA_LORDS=[
+  "Ketu","Venus","Surya","Chandra","Mangala","Rahu","Jupiter","Saturn","Budha",
+  "Ketu","Venus","Surya","Chandra","Mangala","Rahu","Jupiter","Saturn","Budha",
+  "Ketu","Venus","Surya","Chandra","Mangala","Rahu","Jupiter","Saturn","Budha"
+];
+
+
+
+
+
+const SIGN_LORDS={
+  Aries:"Mangala",
+  Taurus:"Venus",
+  Gemini:"Budha",
+  Cancer:"Chandra",
+  Leo:"Surya",
+  Virgo:"Budha",
+  Libra:"Venus",
+  Scorpio:"Mangala",
+  Sagittarius:"Jupiter",
+  Capricorn:"Saturn",
+  Aquarius:"Saturn",
+  Pisces:"Jupiter"
+};
+
+
+function getPlanetSign(entity){
+  let abs=getAbsDeg(entity);
+  if(abs==null) return "";
+  let signIndex=Math.floor(abs/30);
+  return signs[signIndex+1];
+}
+
+
+
+
+
+
+function getPlanetHouse(entity){
+  let abs=getShiftedDeg(entity);
+  if(abs==null) return "";
+
+  let pivot=document.getElementById("kundaliPivot").value;
+	let pivotAbs=getShiftedDeg(pivot);
+	
+	if(pivotAbs==null) return;
+	
+
+
+  let baseSign=Math.floor(pivotAbs/30);
+  let planetSign=Math.floor(abs/30);
+
+  return ((planetSign-baseSign+12)%12)+1;
+}
+
+
+
+
+
+
+function getLordsOf(entity){
+
+  let pivot=document.getElementById("kundaliPivot").value;
+  let pivotAbs=getShiftedDeg(pivot);
+  if(pivotAbs==null) return "";
+
+  let pivotSignIndex=Math.floor(pivotAbs/30);
+
+  let result=[];
+
+
+
+
+
+
+
+
+  for(let i=0;i<12;i++){
+    let sign=ZODIAC_ORDER[(pivotSignIndex+i)%12];
+    if(SIGN_LORDS[sign]===entity){
+      result.push(i+1);
+    }
+  }
+
+  return result.join(",") || "-";
+}
+
+
+
+
+
+
+function getConjunctPlanets(entity){
+if(entity.includes("CSL")) return "-";
+
+  let abs=getShiftedDeg(entity);
+  if(abs==null) return "-";
+
+  let result=[];
+
+  planets
+  .filter(p=>p!=="Lagna" && p!==entity && !p.includes("CSL"))
+  .forEach(other=>{
+
+    let otherAbs=getShiftedDeg(other);
+    if(otherAbs==null) return;
+
+    let diff=Math.abs(abs-otherAbs);
+    if(diff>180) diff=360-diff;
+
+	  if(diff<=12){   // 12° orb
+	  let placedHouse = getPlanetHouse(other) || "-";
+
+	  // Rahu & Ketu → show only house
+	  if(other==="Rahu" || other==="Ketu"){
+		result.push(`${other}(${placedHouse})`);
+	  }else{
+		let lords=getLordsOf(other);
+		result.push(`${other}(${placedHouse},${lords||"-"})`);
+	  }
+	}
+
+
+
+  });
+
+  return result.join(" ") || "-";
+}
+
+
+
+
+
+function getCuspalConjunct(entity){
+  let abs=getShiftedDeg(entity);
+  if(abs==null) return "-";
+
+  const data=window.__lastSwissData;
+  if(!data || !data.cusps) return "-";
+
+  let result=[];
+
+  Object.keys(data.cusps).forEach(c=>{
+    let cuspAbs=data.cusps[c];
+    if(typeof cuspAbs!=="number") return;
+
+    let shifted=(cuspAbs+getGlobalOffset()+360)%360;
+
+    let diff=Math.abs(abs-shifted);
+    if(diff>180) diff=360-diff;
+
+    if(diff<=3){
+      result.push(c);
+    }
+  });
+
+  return result.join(",") || "-";
+}
+
+
+
+
+
+
+
+
+
+function getAspectHouses(entity){
+  let house=getPlanetHouse(entity);
+  if(!house) return "";
+
+  house=parseInt(house);
+
+  if(entity==="Saturn"){
+    return [ (house+2-1)%12+1, (house+6-1)%12+1, (house+9-1)%12+1 ].join(",");
+  }
+
+  if(entity==="Mangala"){
+  return [
+    (house+3-1)%12+1,   // 4th aspect
+    (house+6-1)%12+1,   // 7th aspect
+    (house+7-1)%12+1    // 8th aspect
+  ].join(",");
+}
+
+
+  if(entity==="Jupiter"){
+    return [ (house+4-1)%12+1, (house+6-1)%12+1, (house+8-1)%12+1 ].join(",");
+
+  }
+  
+  if(entity==="Rahu" || entity==="Ketu"){
+  return "-";
+}
+
+
+
+  // default 7th aspect
+  return [ (house+6-1)%12+1 ].join(",");
+}
+
+
+
+
+
+
+
+
+
+function getStarLord(entity){
+  let abs = getAbsDeg(entity);
+  if(abs === null) return "";
+
+  // 360 degrees / 27 nakshatras = 13.3333...
+  let nakIndex = Math.floor(abs / (360/27));
+  return NAKSHATRA_LORDS[nakIndex] || "";
+}
+
+
+function initSIKundali(){
+  let g=document.getElementById("siKundali");
+  g.innerHTML="";
+  SI_SIGNS.forEach(s=>{
+    if(s===""){
+      g.innerHTML+=`<div class="siCell siCenter"></div>`;
+    }else{
+      g.innerHTML+=`
+      <div class="siCell" data-sign="${s}">
+        <div class="siHouse"></div>
+        <div class="siList"></div>
+        <div class="siSign"></div>
+
+      </div>`;
+    }
+  });
+}
+
+function getAbsDeg(entity){
+  const data=window.__lastSwissData;
+  if(!data) return null;
+
+  if(entity==="Lagna" || entity==="1 CSL"){
+    return data.lagna;
+  }
+
+  if(entity.endsWith(" CSL")){
+    let num=parseInt(entity);
+    if(data.cusps && data.cusps[num]!=null){
+      return data.cusps[num];
+    }
+  }
+
+  if(data.planets && data.planets[entity]!=null){
+    return data.planets[entity];
+  }
+
+  return null;
+}
+
+
+
+function getShiftedDeg(entity){
+  let abs = getAbsDeg(entity);
+  if(abs==null) return null;
+
+  let offset = getGlobalOffset();
+  return (abs + offset + 360) % 360;
+}
+
+
+
+function getGlobalOffset(){
+  if(!kpMode.checked && !vedicMode.checked) return 0;
+
+  let pivot=document.getElementById("kundaliPivot").value;
+  let abs=getAbsDeg(pivot);
+  if(abs==null) return 0;
+
+  let deg=abs%30;
+
+  if(kpMode.checked){
+
+    if(document.getElementById("originalASC").checked){
+      return -deg;   // move pivot to 0° of same sign
+    }
+
+    return (deg>=15?30:0)-deg;
+  }
+
+  if(vedicMode.checked){
+    return 15-deg;
+  }
+
+  return 0;
+}
+
+
+
+
+
+
+
+function enforceMode(mode){
+  sign2signMode.checked=false;
+  kpMode.checked=false;
+  vedicMode.checked=false;
+
+  if(mode==="sign") sign2signMode.checked=true;
+  if(mode==="kp") kpMode.checked=true;
+  if(mode==="vedic") vedicMode.checked=true;
+
+  drawSIKundali();
+}
+
+sign2signMode.onchange=()=>{enforceMode("sign");buildSignificatorTable();buildVimshottari();};
+kpMode.onchange=()=>{enforceMode("kp");buildSignificatorTable();buildVimshottari();};
+vedicMode.onchange=()=>{enforceMode("vedic");buildSignificatorTable();buildVimshottari();};
+
+
+function drawSIKundali(){
+
+  initSIKundali();
+  let hasData = !!window.__lastSwissData;
+
+  let pivot=document.getElementById("kundaliPivot").value;
+  let pivotAbs=getShiftedDeg(pivot);
+  if(pivotAbs==null) return;
+  
+  let pivotOriginal = getAbsDeg(pivot);
+
+
+
+
+
+  let offset=getGlobalOffset();
+
+
+
+
+
+
+ let baseSignIndex = Math.floor(pivotAbs / 30);
+
+
+  
+  
+  
+  
+  
+
+  let cells=[...document.querySelectorAll("#siKundali .siCell[data-sign]")];
+
+ // Get all cells including empty ones to maintain index integrity
+  let allCells = document.querySelectorAll("#siKundali .siCell");
+  
+  allCells.forEach(cell => {
+    let sign = cell.dataset.sign;
+    if(!sign) return; // Skip the center empty cells
+    
+    let signIndex = ZODIAC_ORDER.indexOf(sign);
+    let houseNum = ((signIndex - baseSignIndex + 12) % 12) + 1;
+    
+    cell.querySelector(".siHouse").textContent = houseNum;
+    cell.querySelector(".siSign").textContent = "";
+    cell.querySelector(".siList").innerHTML = ""; // Clear old planets
+	
+	
+	
+	
+	
+	
+	
+
+
+  });
+  
+  
+  
+  
+
+  let buckets={};
+  
+  
+if(document.getElementById("showCusps")?.checked){
+
+  const data = window.__lastSwissData;
+  if(!data || !data.cusps) return;
+
+  // use SAME offset as planets (fixes Original ASC / KP / Vedic)
+  let offset = getGlobalOffset();
+
+  for(let i=0;i<12;i++){
+
+    let cuspNum = i + 1;
+    let cuspAbs = data.cusps[cuspNum];
+
+    if(typeof cuspAbs !== "number") continue;
+
+    // APPLY GLOBAL OFFSET (THIS WAS MISSING)
+    let shifted = (cuspAbs + offset + 360) % 360;
+
+    let signIndex = Math.floor(shifted/30);
+    let sign = signs[signIndex+1];
+
+    if(!buckets[sign]) buckets[sign]=[];
+
+    let deg = Math.floor(shifted%30);
+    let min = Math.floor(((shifted%30)-deg)*60);
+
+    buckets[sign].push({
+      label:`C${cuspNum}`,
+      text:`C${cuspNum} :: ${String(deg).padStart(2,"0")}°${String(min).padStart(2,"0")}′`,
+      type:"cusp",
+      deg,
+      signIndex
+    });
+  }
+}
+
+
+
+
+
+
+
+
+
+
+  planets.filter(p=>!p.includes("CSL")).forEach(p=>{
+    let abs=getAbsDeg(p);
+    if(abs==null) return;
+
+    let shifted=(abs+offset+360)%360;
+    let signIndex=Math.floor(shifted/30);
+    let sign=signs[signIndex+1];
+
+    if(!buckets[sign]) buckets[sign]=[];
+	
+    let d = shifted % 30;
+	let deg = Math.floor(d);
+	let min = Math.floor((d - deg) * 60);
+
+	buckets[sign].push({
+	  label:p,
+	  deg,
+	  min
+	});
+
+	
+	
+  });
+
+
+
+
+	Object.keys(buckets).forEach(sign=>{
+	  let cell=cells.find(c=>c.dataset.sign===sign);
+	  if(!cell) return;
+
+	  let signIndex=ZODIAC_ORDER.indexOf(sign);
+
+	  /* Aries–Virgo: ascending degree
+		 Libra–Pisces: descending degree */
+	  if(signIndex<=5){
+		buckets[sign].sort((a,b)=>a.deg-b.deg);
+	  }else{
+		buckets[sign].sort((a,b)=>b.deg-a.deg);
+	  }
+
+	 buckets[sign].forEach(p=>{
+	  let d=document.createElement("div");
+
+	  if(p.type==="cusp"){
+		d.textContent = p.text;
+		d.style.color="#10b981";
+		d.style.fontWeight="900";
+	  
+	  
+	  }else{
+	  let minText = (p.min!==undefined)
+		? String(p.min).padStart(2,"0")+"′"
+		: "";
+	  d.textContent=`${p.label} ${p.deg}°${minText}`;
+	}
+
+	  
+
+	  cell.querySelector(".siList").appendChild(d);
+	});
+
+
+	});
+}
+
+function loadSwissJSON(){
+  const input=document.createElement("input");
+  input.type="file";
+  input.accept=".json";
+
+  input.onchange=e=>{
+    const reader=new FileReader();
+	
+	
+	
+	
+reader.onload=()=>{
+  window.__lastSwissData=JSON.parse(reader.result);
+  drawSIKundali();
+  buildSignificatorTable();
+  buildVimshottari();
+};
+
+
+
+
+
+    reader.readAsText(e.target.files[0]);
+  };
+
+  input.click();
+}
+
+(function(){
+  let sel=document.getElementById("kundaliPivot");
+  planets.forEach(p=>{
+    let o=document.createElement("option");
+    o.value=o.text=p;
+    sel.appendChild(o);
+  });
+  sel.value="Lagna";
+})();
+
+document.getElementById("kundaliPivot").addEventListener("change", () => {
+  drawSIKundali();
+  buildSignificatorTable();
+  buildVimshottari();
+});
+  
+  
+ document.getElementById("originalASC")
+  .addEventListener("change",()=>{
+    drawSIKundali();
+    buildSignificatorTable();
+    buildVimshottari();
+  });
+
+
+document.getElementById("showCusps")
+  .addEventListener("change",drawSIKundali);
+
+
+
+["useConjPlanets","useAspects","useConjCusps"].forEach(id=>{
+  document.getElementById(id).addEventListener("change",()=>{
+    buildSignificatorTable();
+    buildVimshottari();
+  });
+});
+
+document.getElementById("splitSig").addEventListener("change",()=>{
+  if(document.getElementById("splitSig").checked){
+    document.getElementById("splitSig2").checked=false;
+  }
+  buildSignificatorTable();
+  buildVimshottari();
+});
+
+document.getElementById("splitSig2").addEventListener("change",()=>{
+  if(document.getElementById("splitSig2").checked){
+    document.getElementById("splitSig").checked=false;
+  }
+  buildSignificatorTable();
+  buildVimshottari();
+});
+
+
+
+
+["hideVimDates","useMonthNames","knVimToggle"].forEach(id=>{
+  document.getElementById(id).addEventListener("change",()=>{
+    USE_KN_VIM = document.getElementById("knVimToggle").checked;
+    buildVimshottari();
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+function buildSignificatorTable(){
+  let container = document.getElementById("sigContainer");
+  container.innerHTML = "";
+ 
+
+ let sigPlanets = planets.filter(p =>
+  p !== "Lagna" && !p.includes("CSL")
+);
+
+let pivot = document.getElementById("kundaliPivot").value;
+
+if(pivot !== "Lagna"){
+  let idx = sigPlanets.indexOf(pivot);
+  if(idx !== -1){
+    sigPlanets = [
+      ...sigPlanets.slice(idx),
+      ...sigPlanets.slice(0,idx)
+    ];
+  }
+}
+
+sigPlanets.forEach(p => {
+
+ 
+    let starLord = window.__lastSwissData ? getStarLord(p) : "";
+
+	let p_house = window.__lastSwissData ? getPlanetHouse(p) : "";
+	let p_lords = window.__lastSwissData ? getLordsOf(p) : "";
+	let s_house = starLord ? getPlanetHouse(starLord) : "";
+	let s_lords = starLord ? getLordsOf(starLord) : "";
+
+	
+	let conjPlanets = window.__lastSwissData ? getConjunctPlanets(p) : "-";
+	let aspects = window.__lastSwissData ? getAspectHouses(p) : "-";
+	let conjCusps = window.__lastSwissData ? getCuspalConjunct(p) : "-";
+
+	let s_conjPlanets = starLord ? getConjunctPlanets(starLord) : "-";
+	let s_aspects = starLord ? getAspectHouses(starLord) : "-";
+	let s_conjCusps = starLord ? getCuspalConjunct(starLord) : "-";
+
+	
+	
+	
+
+    let box = document.createElement("div");
+    box.style.border = "1px solid #10b981";
+    box.style.background = "#010a08";
+    box.style.color = "#ecfdf5";
+    box.style.padding = "10px";
+    box.style.width = "95%";
+
+    box.innerHTML = `
+      
+		<div style="font-weight:900;font-size:22px;text-align:center;margin-bottom:6px;color:#d4af37">
+		${p} Significator
+		</div>
+
+
+
+      <table style="width:100%;border-collapse:collapse;text-align:center">
+        <tr>
+          <th style="border:1px solid #10b981;padding:6px">Level</th>
+          <th style="border:1px solid #10b981;padding:6px">Entity</th>
+          <th style="border:1px solid #10b981;padding:6px">House</th>
+          <th style="border:1px solid #10b981;padding:6px">Lords Of</th>
+          <th style="border:1px solid #10b981;padding:6px">Conjunct Planets</th>
+		<th style="border:1px solid #10b981;padding:6px">Aspects</th>
+		<th style="border:1px solid #10b981;padding:6px">Conjunct Cuspal</th>
+
+
+        </tr>
+        <tr>
+          <td style="border:1px solid #10b981;padding:6px">Planet</td>
+          <td style="border:1px solid #10b981;padding:6px"><b>${p}</b></td>
+          <td style="border:1px solid #10b981;padding:6px">${p_house}</td>
+          <td style="border:1px solid #10b981;padding:6px">${p_lords}</td>
+          <td style="border:1px solid #10b981;padding:6px">${getConjunctPlanets(p)}</td>
+          <td style="border:1px solid #10b981;padding:6px">${getAspectHouses(p)}</td>
+			<td style="border:1px solid #10b981;padding:6px">${getCuspalConjunct(p)}</td>
+        </tr>
+        <tr style="color:#d4af37">
+          <td style="border:1px solid #10b981;padding:6px">Star Lord</td>
+          <td style="border:1px solid #10b981;padding:6px"><b>${starLord}</b></td>
+          <td style="border:1px solid #10b981;padding:6px">${s_house}</td>
+          <td style="border:1px solid #10b981;padding:6px">${s_lords}</td>
+          <td style="border:1px solid #10b981;padding:6px">${starLord ? getConjunctPlanets(starLord) : ""}</td>
+          <td style="border:1px solid #10b981;padding:6px">${starLord ? getAspectHouses(starLord) : ""}</td>
+		<td style="border:1px solid #10b981;padding:6px">${starLord ? getCuspalConjunct(starLord) : ""}</td>
+        </tr>
+      </table>
+      <div style="margin-top:8px;font-weight:900;color:var(--accent);font-family:Consolas, monospace, 'Noto Sans Kannada';">
+        
+		
+		
+		
+		
+		
+		
+		${p} Significators ===== ${
+		
+		
+		document.getElementById("splitSig2")?.checked
+	  ? getPlanetSignificatorsSplit2(p)
+	  : document.getElementById("splitSig")?.checked
+		? getPlanetSignificatorsSplit(p)
+		: (()=>{
+
+
+
+		  let values=[p_house, p_lords, s_house, s_lords]
+			.filter(x=>x && x!=="")
+			.join(",")
+			.split(",");
+
+		  // Conjunct planets (planet + star lord)
+		  
+		  
+		  
+		  if(document.getElementById("useConjPlanets")?.checked){
+
+			let all = [conjPlanets, s_conjPlanets];
+
+			all.forEach(txt=>{
+			  let planets = txt.match(/\((.*?)\)/g) || [];
+			  planets.forEach(x=>{
+				x.replace(/[()]/g,"").split(",").forEach(n=>values.push(n));
+			  });
+			});
+		  }
+
+		  // Aspects (planet + star lord)
+		  if(document.getElementById("useAspects")?.checked){
+
+			[aspects, s_aspects].forEach(a=>{
+			  a.split(",").forEach(n=>values.push(n));
+			});
+		  }
+
+		  // Cuspal conjunction (planet + star lord)
+		  
+		  
+		  if(document.getElementById("useConjCusps")?.checked){
+
+			[conjCusps, s_conjCusps].forEach(c=>{
+			  c.split(",").forEach(n=>values.push(n));
+			});
+		  }
+
+		  let nums=values
+			.map(x=>parseInt(x,10))
+			.filter(x=>!isNaN(x));
+
+		  let unique=[...new Set(nums)].sort((a,b)=>a-b);
+
+		  return unique.length?unique.join(", "):"-";
+		})()
+	}
+
+
+
+		
+		
+		
+      </div>`;
+    container.appendChild(box);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getPlanetSignificatorsSplit(planet){
+
+  let starLord = getStarLord(planet);
+
+  let p_house = getPlanetHouse(planet);
+  let p_lords = getLordsOf(planet);
+
+  let s_house = starLord ? getPlanetHouse(starLord) : "";
+  let s_lords = starLord ? getLordsOf(starLord) : "";
+
+  let blocks=[];
+
+  /* PLANET BLOCK */
+  if(p_house){
+
+    // Rahu/Ketu → only show house
+    if(planet==="Rahu" || planet==="Ketu"){
+      blocks.push(`${p_house}`);
+    }else{
+
+      let nums=[parseInt(p_house)];
+
+      if(p_lords && p_lords!=="-"){
+        p_lords.split(",").forEach(n=>{
+          nums.push(parseInt(n));
+        });
+      }
+
+      // remove duplicates and sort
+      nums = [...new Set(nums)].sort((a,b)=>a-b);
+
+      blocks.push(`${p_house}-${nums.join(",")}`);
+    }
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  /* STAR LORD BLOCK */
+  /* STAR LORD BLOCK */
+  if(s_house){
+
+    let nums=[parseInt(s_house)];
+
+    if(s_lords && s_lords!=="-"){
+      s_lords.split(",").forEach(n=>{
+        nums.push(parseInt(n));
+      });
+    }
+
+    // remove duplicates and sort
+    nums = [...new Set(nums)].sort((a,b)=>a-b);
+
+    // always show full structure
+    if(nums.length===1){
+      blocks.push(`${nums[0]}`);
+    }else{
+      blocks.push(`${s_house}-${nums.join(",")}`);
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  /* Conjunct planets (planet + star lord combined) */
+  if(document.getElementById("useConjPlanets")?.checked){
+
+    let allNums=[];
+
+    [planet, starLord].forEach(ent=>{
+      if(!ent) return;
+
+      let txt=getConjunctPlanets(ent);
+      let planets = txt.match(/\((.*?)\)/g) || [];
+
+      planets.forEach(x=>{
+        x.replace(/[()]/g,"")
+         .split(",")
+         .forEach(n=>allNums.push(parseInt(n)));
+      });
+    });
+
+    allNums = allNums.filter(n=>!isNaN(n));
+    allNums = [...new Set(allNums)].sort((a,b)=>a-b);
+
+    if(allNums.length){
+      blocks.push(`${allNums.join(",")}`);
+    }
+  }
+
+
+
+
+
+
+
+
+  /* Aspects (planet + star lord combined) */
+  if(document.getElementById("useAspects")?.checked){
+
+    let allNums=[];
+
+    [planet, starLord].forEach(ent=>{
+      if(!ent) return;
+
+      let asp=getAspectHouses(ent);
+      if(asp && asp!=="-"){
+        asp.split(",").forEach(n=>allNums.push(parseInt(n)));
+      }
+    });
+
+    allNums = allNums.filter(n=>!isNaN(n));
+    allNums = [...new Set(allNums)].sort((a,b)=>a-b);
+
+    if(allNums.length){
+      blocks.push(`${allNums.join(",")}`);
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+  /* Cuspal conjunction (planet + star lord combined) */
+if(document.getElementById("useConjCusps")?.checked){
+
+  let allNums=[];
+
+  [planet, starLord].forEach(ent=>{
+    if(!ent) return;
+
+    if(ent==="Rahu" || ent==="Ketu") return;
+
+    let cus=getCuspalConjunct(ent);
+    if(cus && cus!=="-"){
+      cus.split(",").forEach(n=>allNums.push(parseInt(n)));
+    }
+  });
+
+  allNums = allNums.filter(n=>!isNaN(n));
+  allNums = [...new Set(allNums)].sort((a,b)=>a-b);
+
+  if(allNums.length){
+    blocks.push(`${allNums.join(",")}`);
+  }
+}
+
+  
+  
+
+  return blocks.join(" + ") || "-";
+}
+
+
+
+
+function getPlanetSignificatorsSplit2(planet){
+
+  let starLord = getStarLord(planet);
+
+  function buildBlock(ent){
+    if(!ent) return "";
+
+    let house = getPlanetHouse(ent);
+    if(!house) return "";
+
+    if(ent==="Rahu" || ent==="Ketu"){
+	  return `${house}`;
+	}
+
+	let nums = [parseInt(house)];
+
+    let lords = getLordsOf(ent);
+    if(lords && lords !== "-"){
+      lords.split(",").forEach(n=>{
+        nums.push(parseInt(n));
+      });
+    }
+
+    if(document.getElementById("useConjPlanets")?.checked){
+      let txt = getConjunctPlanets(ent);
+      let planets = txt.match(/\((.*?)\)/g) || [];
+      planets.forEach(x=>{
+        x.replace(/[()]/g,"")
+         .split(",")
+         .forEach(n=>nums.push(parseInt(n)));
+      });
+    }
+
+    if(document.getElementById("useAspects")?.checked){
+      let asp = getAspectHouses(ent);
+      if(asp && asp !== "-"){
+        asp.split(",").forEach(n=>nums.push(parseInt(n)));
+      }
+    }
+
+    if(document.getElementById("useConjCusps")?.checked){
+	  if(ent!=="Rahu" && ent!=="Ketu"){
+		let cus = getCuspalConjunct(ent);
+		if(cus && cus !== "-"){
+		  cus.split(",").forEach(n=>nums.push(parseInt(n)));
+		}
+	  }
+	}
+
+
+    nums = nums.filter(n=>!isNaN(n));
+    nums = [...new Set(nums)].sort((a,b)=>a-b);
+
+   if(nums.length===1){
+  return `${nums[0]}`;
+}
+return `${house}-${nums.join(",")}`;
+
+	
+	
+	
+  }
+
+  let planetBlock = buildBlock(planet);
+  let starBlock = buildBlock(starLord);
+
+  if(planetBlock && starBlock){
+    return `${planetBlock} + ${starBlock}`;
+  }
+
+  return planetBlock || starBlock || "-";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getPlanetSignificators(planet){
+  if(!window.__lastSwissData) return "-";
+
+  if(document.getElementById("splitSig2")?.checked){
+    return getPlanetSignificatorsSplit2(planet);
+  }
+
+  if(document.getElementById("splitSig")?.checked){
+    return getPlanetSignificatorsSplit(planet);
+  }
+
+
+  let starLord = getStarLord(planet);
+
+  let p_house = getPlanetHouse(planet);
+  let p_lords = getLordsOf(planet);
+  let s_house = starLord ? getPlanetHouse(starLord) : "";
+  let s_lords = starLord ? getLordsOf(starLord) : "";
+
+  let conjPlanets = getConjunctPlanets(planet);
+  let aspects = getAspectHouses(planet);
+  let conjCusps = getCuspalConjunct(planet);
+
+  let s_conjPlanets = starLord ? getConjunctPlanets(starLord) : "-";
+  let s_aspects = starLord ? getAspectHouses(starLord) : "-";
+  let s_conjCusps = starLord ? getCuspalConjunct(starLord) : "-";
+
+  let values=[p_house, p_lords, s_house, s_lords]
+    .filter(x=>x && x!=="")
+    .join(",")
+    .split(",");
+
+  /* Conjunct planets */
+  if(document.getElementById("useConjPlanets")?.checked){
+    [conjPlanets, s_conjPlanets].forEach(txt=>{
+      let planets = txt.match(/\((.*?)\)/g) || [];
+      planets.forEach(x=>{
+        x.replace(/[()]/g,"").split(",").forEach(n=>values.push(n));
+      });
+    });
+  }
+
+  /* Aspects */
+  if(document.getElementById("useAspects")?.checked){
+    [aspects, s_aspects].forEach(a=>{
+      a.split(",").forEach(n=>values.push(n));
+    });
+  }
+
+  /* Cuspal conjunction */
+  if(document.getElementById("useConjCusps")?.checked){
+
+  if(planet!=="Rahu" && planet!=="Ketu"){
+    conjCusps.split(",").forEach(n=>values.push(n));
+  }
+
+  if(starLord!=="Rahu" && starLord!=="Ketu"){
+    s_conjCusps.split(",").forEach(n=>values.push(n));
+  }
+}
+
+
+  let nums=values
+    .map(x=>parseInt(x,10))
+    .filter(x=>!isNaN(x));
+
+  let unique=[...new Set(nums)].sort((a,b)=>a-b);
+
+  return unique.length?unique.join(","):"-";
+}
+
+
+
+
+
+
+/* =========================
+   KANNADA LANGUAGE SYSTEM
+   ========================= */
+let USE_KN_VIM = true;
+
+
+const KN_VIM = {
+  Mahadasha:"ಮಹಾದಶೆ",
+  Bhukti:"ಭುಕ್ತಿ",
+  Antara:"ಅಂತರ",
+  Ketu:"ಕೇತು",
+  Venus:"ಶುಕ್ರ",
+  Surya:"ಸೂರ್ಯ",
+  Chandra:"ಚಂದ್ರ",
+  Mangala:"ಮಂಗಳ",
+  Rahu:"ರಾಹು",
+  Jupiter:"ಗುರು",
+  Saturn:"ಶನಿ",
+  Budha:"ಬುಧ"
+};
+
+function TVIM(txt){
+  if(!USE_KN_VIM) return txt;
+  return KN_VIM[txt] || txt;
+}
+
+
+
+const DASHA_ORDER=[
+  "Ketu","Venus","Surya","Chandra",
+  "Mangala","Rahu","Jupiter","Saturn","Budha"
+];
+
+const DASHA_YEARS={
+  Ketu:7,
+  Venus:20,
+  Surya:6,
+  Chandra:10,
+  Mangala:7,
+  Rahu:18,
+  Jupiter:16,
+  Saturn:19,
+  Budha:17
+};
+
+
+let VIM_CALIB_OFFSET_DAYS = 0;
+
+
+const VIM_SYMBOLS={
+  1:"⭐",
+  2:"▶",
+  3:"◆"
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function buildVimshottari(){
+  const box=document.getElementById("vimshottariContainer");
+  box.innerHTML="";
+
+  if(!window.__lastSwissData){
+    box.innerHTML="<div style='text-align:center'>Load chart to view Vimshottari</div>";
+    return;
+  }
+
+  const MS_YEAR=365.25*24*60*60*1000;
+  const nakSize=360/27;
+
+  let moonAbs=getAbsDeg("Chandra");
+  if(moonAbs==null) return;
+
+  let nakIndex=Math.floor(moonAbs/nakSize);
+  let startLord=NAKSHATRA_LORDS[nakIndex];
+  let frac=(moonAbs%nakSize)/nakSize;
+  let elapsedYears=DASHA_YEARS[startLord]*frac;
+
+  const data=window.__lastSwissData;
+  let birthDate=new Date(data.meta.datetime_utc);
+
+  let mahaStart=new Date(birthDate.getTime()-elapsedYears*MS_YEAR + (VIM_CALIB_OFFSET_DAYS * 24*60*60*1000));
+
+  let startIndex=DASHA_ORDER.indexOf(startLord);
+  let order=[...DASHA_ORDER.slice(startIndex),...DASHA_ORDER.slice(0,startIndex)];
+
+  order.forEach(mahaLord=>{
+    let mahaYears=DASHA_YEARS[mahaLord];
+    let mahaEnd=new Date(mahaStart.getTime()+mahaYears*MS_YEAR);
+    let mahaSig=getPlanetSignificators(mahaLord);
+    let mahaRow=document.createElement("div");
+	
+    mahaRow.dataset.s = mahaStart;
+    mahaRow.dataset.e = mahaEnd;
+    mahaRow.dataset.l = 1;
+
+    mahaRow.style.cursor="pointer";
+    mahaRow.style.padding="6px 10px";
+    mahaRow.style.marginTop="4px";
+    mahaRow.style.border="1px solid #10b981";
+    mahaRow.style.background="#021b16";
+    mahaRow.style.color="#ecfdf5";
+    mahaRow.style.display = "grid";
+    mahaRow.style.width = "960px";
+    // Fixed columns: Sym, Lord/Level, StartDate, Arrow, EndDate, Separator, Significator
+    mahaRow.style.gridTemplateColumns = "40px 220px 140px 60px 140px 30px auto";
+
+    let mahaData = formatDashaLine("Mahadasha", mahaLord, mahaSig, mahaStart, mahaEnd);
+
+    // CHANGED: text-align: left for all columns
+    mahaRow.innerHTML = `
+        <div style="text-align:left; font-weight:900;"><span class="vimSym"></span></div>
+        <div style="white-space:nowrap; font-weight:900; text-align:left;">${mahaData.level} – ${mahaData.lord}</div>
+        <div style="text-align:left; font-weight:900;">${mahaData.start}</div>
+        <div style="text-align:left; font-weight:900;">→→→</div>
+        <div style="text-align:left; font-weight:900;">${mahaData.end}</div>
+        <div style="text-align:left; font-weight:900;">||</div>
+        <div style="padding-left:15px; color:var(--accent); font-weight:900; text-align:left;">${mahaData.sig}</div>
+    `;
+
+    let bhuktiBox=document.createElement("div");
+    bhuktiBox.style.display="none";
+    bhuktiBox.style.paddingLeft="50px"; // CHANGED: Indentation removed for alignment
+
+    let bhuktiIndex=DASHA_ORDER.indexOf(mahaLord);
+    let bhuktiOrder=[...DASHA_ORDER.slice(bhuktiIndex),...DASHA_ORDER.slice(0,bhuktiIndex)];
+    let bhuktiStart=new Date(mahaStart);
+
+    bhuktiOrder.forEach(bhuktiLord=>{
+      let bhuktiYears=mahaYears*(DASHA_YEARS[bhuktiLord]/120);
+      let bhuktiEnd=new Date(bhuktiStart.getTime()+bhuktiYears*MS_YEAR);
+      let bhuktiSig=getPlanetSignificators(bhuktiLord);
+      let bhuktiRow=document.createElement("div");
+	  
+      bhuktiRow.dataset.s = bhuktiStart;
+      bhuktiRow.dataset.e = bhuktiEnd;
+      bhuktiRow.dataset.l = 2;
+
+      bhuktiRow.style.cursor="pointer";
+      bhuktiRow.style.padding="4px 10px";
+      bhuktiRow.style.margin="2px 0";
+      bhuktiRow.style.border="1px solid #064e3b";
+      bhuktiRow.style.background="#010a08";
+      bhuktiRow.style.color="#ecfdf5";
+      bhuktiRow.style.display = "grid";
+      bhuktiRow.style.width = "960px";
+      bhuktiRow.style.gridTemplateColumns = "40px 220px 140px 60px 140px 30px auto";
+
+      let bhuktiData = formatDashaLine("Bhukti", bhuktiLord, bhuktiSig, bhuktiStart, bhuktiEnd);
+
+      bhuktiRow.innerHTML = `
+          <div style="text-align:left; font-weight:900;"><span class="vimSym"></span></div>
+          <div style="white-space:nowrap; font-weight:900; text-align:left;">${bhuktiData.level} – ${bhuktiData.lord}</div>
+          <div style="text-align:left; font-weight:900;">${bhuktiData.start}</div>
+          <div style="text-align:left; font-weight:900;">→→→</div>
+          <div style="text-align:left; font-weight:900;">${bhuktiData.end}</div>
+          <div style="text-align:left; font-weight:900;">||</div>
+          <div style="padding-left:15px; color:var(--accent); font-weight:900; text-align:left;">${bhuktiData.sig}</div>
+      `;
+
+      let antaraBox=document.createElement("div");
+      antaraBox.style.display="none";
+      antaraBox.style.paddingLeft="50px"; // CHANGED: Indentation removed for alignment
+
+      let antaraIndex=DASHA_ORDER.indexOf(bhuktiLord);
+      let antaraOrder=[...DASHA_ORDER.slice(antaraIndex),...DASHA_ORDER.slice(0,antaraIndex)];
+      let antaraStart=new Date(bhuktiStart);
+
+      antaraOrder.forEach(antaraLord=>{
+        let antaraYears=bhuktiYears*(DASHA_YEARS[antaraLord]/120);
+        let antaraEnd=new Date(antaraStart.getTime()+antaraYears*MS_YEAR);
+        let antaraSig=getPlanetSignificators(antaraLord);
+        let line=document.createElement("div");
+
+        line.dataset.s = antaraStart;
+        line.dataset.e = antaraEnd;
+        line.dataset.l = 3;
+	  
+        line.style.padding="3px 10px";
+        line.style.margin="1px 0";
+        line.style.border="1px solid #1e3a8a";
+        line.style.background="#0f172a";
+        line.style.color="#ccfbf1";
+        line.style.cursor="pointer";
+        line.style.display = "grid";
+        line.style.width = "960px";
+        line.style.gridTemplateColumns = "40px 220px 140px 60px 140px 30px auto";
+
+        let antaraData = formatDashaLine("Antara", antaraLord, antaraSig, antaraStart, antaraEnd);
+
+        line.innerHTML = `
+            <div style="text-align:left; font-weight:900;"><span class="vimSym"></span></div>
+            <div style="white-space:nowrap; font-weight:900; text-align:left;">${antaraData.level} – ${antaraData.lord}</div>
+            <div style="text-align:left; font-weight:900;">${antaraData.start}</div>
+            <div style="text-align:left; font-weight:900;">→→→</div>
+            <div style="text-align:left; font-weight:900;">${antaraData.end}</div>
+            <div style="text-align:left; font-weight:900;">||</div>
+            <div style="padding-left:15px; color:var(--accent); font-weight:900; text-align:left;">${antaraData.sig}</div>
+        `;
+
+        line.onclick=()=>{
+          if(line.classList.toggle("active")){
+            line.style.background="#0f766e";
+            line.style.border="2px solid #2dd4bf";
+          }else{
+            line.style.background="#0f172a";
+            line.style.border="1px solid #1e3a8a";
+          }
+        };
+
+        antaraBox.appendChild(line);
+        antaraStart=antaraEnd;
+      });
+
+      bhuktiRow.onclick=()=>{
+        const isOpen = antaraBox.style.display==="block";
+        antaraBox.style.display = isOpen ? "none" : "block";
+        if(isOpen){
+          bhuktiRow.style.background="#010a08";
+          bhuktiRow.style.color="#ecfdf5";
+          bhuktiRow.style.border="1px solid #064e3b";
+        }else{
+          bhuktiRow.style.background="#7f1d1d";
+          bhuktiRow.style.color="#fee2e2";
+          bhuktiRow.style.border="2px solid #dc2626";
+        }
+      };
+
+      bhuktiBox.appendChild(bhuktiRow);
+      bhuktiBox.appendChild(antaraBox);
+      bhuktiStart=bhuktiEnd;
+    });
+
+    mahaRow.onclick=()=>{
+      const isOpen = bhuktiBox.style.display==="block";
+      bhuktiBox.style.display = isOpen ? "none" : "block";
+      if(isOpen){
+        mahaRow.style.background="#021b16";
+        mahaRow.style.color="#ecfdf5";
+        mahaRow.style.border="1px solid #10b981";
+      }else{
+        mahaRow.style.background="#2b0a3d";
+        mahaRow.style.color="#ecfdf5";
+        mahaRow.style.border="2px solid #a855f7";
+      }
+    };
+
+    box.appendChild(mahaRow);
+    box.appendChild(bhuktiBox);
+    mahaStart=mahaEnd;
+  });
+  setTimeout(highlightTodayVim,0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function formatDashaLine(level, lord, sig, start, end){
+
+  let startTxt=formatDateSmart(start);
+  let endTxt=formatDateSmart(end);
+
+ return {
+  type:"grid",
+  level:TVIM(level),
+  lord:TVIM(lord),
+  sig:sig,
+  start:startTxt,
+  end:endTxt
+};
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function formatDateSmart(d){
+
+  const hideDay=document.getElementById("hideVimDates")?.checked;
+  const useMonth=document.getElementById("useMonthNames")?.checked;
+
+  const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTHS_KN=[
+    "ಜನವರಿ","ಫೆಬ್ರವರಿ","ಮಾರ್ಚ್","ಏಪ್ರಿಲ್","ಮೇ","ಜೂನ್",
+    "ಜುಲೈ","ಆಗಸ್ಟ್","ಸೆಪ್ಟೆಂಬರ್","ಅಕ್ಟೋಬರ್","ನವೆಂಬರ್","ಡಿಸೆಂಬರ್"
+  ];
+
+  let year=d.getFullYear();
+
+  let month=useMonth
+    ? (USE_KN_VIM
+        ? MONTHS_KN[d.getMonth()]
+        : MONTHS[d.getMonth()])
+    : String(d.getMonth()+1).padStart(2,"0");
+
+  if(hideDay){
+    return year+"-"+month;
+  }
+
+  let day=String(d.getDate()).padStart(2,"0");
+  return year+"-"+month+"-"+day;
+}
+
+
+
+
+
+function formatDate(d){
+  return d.getFullYear()+"-"+
+    String(d.getMonth()+1).padStart(2,"0")+"-"+
+    String(d.getDate()).padStart(2,"0");
+}
+
+
+
+
+drawSIKundali();
+buildSignificatorTable();
+buildVimshottari();
+
+
+
+
+
+
+
+
+
+function setVimToday(){
+  const inp=document.getElementById("vimEventDate");
+  if(!inp) return;
+
+  const today=new Date();
+  inp.value=today.toISOString().slice(0,10);
+}
+
+function findVimTransit(){
+
+  const inp=document.getElementById("vimEventDate");
+  if(!inp || !inp.value) return;
+
+  const d=new Date(inp.value);
+
+  // clear old
+  document.querySelectorAll("#vimshottariContainer .active")
+    .forEach(n=>{
+      n.classList.remove("active");
+      n.style.background="";
+      n.style.color="";
+      n.style.border="";
+    });
+
+
+  let nodes=[...document.querySelectorAll("#vimshottariContainer div")]
+    .filter(n=>n.dataset && n.dataset.s)
+    .filter(n =>
+      d>=new Date(n.dataset.s) &&
+      d< new Date(n.dataset.e)
+    )
+    .sort((a,b)=>a.dataset.l-b.dataset.l);
+
+  nodes.forEach(n=>{
+
+    n.classList.add("active");
+
+
+
+
+   if(n.dataset.l==="1"){
+  n.style.background="#2b0a3d";
+  n.style.color="#ecfdf5";
+  n.style.border="2px solid #a855f7";
+  }
+
+	
+	
+	
+    if(n.dataset.l==="2"){
+      n.style.background="#7f1d1d";
+      n.style.color="#fee2e2";
+      n.style.border="2px solid #dc2626";
+    }
+    if(n.dataset.l==="3"){
+      n.style.background="#0f766e";
+      n.style.color="#ccfbf1";
+      n.style.border="2px solid #2dd4bf";
+    }
+
+   
+
+
+
+
+       // expand full parent chain
+    let parent = n.parentElement;
+
+    while(parent && parent.id !== "vimshottariContainer"){
+      if(parent.style && parent.style.display==="none"){
+        parent.style.display="block";
+      }
+      parent = parent.parentElement;
+    }
+
+	
+  });
+}
+
+
+
+
+
+function highlightTodayVim(){
+
+  const today=new Date();
+
+  // clear old symbols
+  document.querySelectorAll(".vimSym")
+    .forEach(s=>s.textContent="");
+
+  let nodes=[...document.querySelectorAll("#vimshottariContainer div")]
+    .filter(n=>n.dataset && n.dataset.s)
+    .filter(n =>
+      today>=new Date(n.dataset.s) &&
+      today< new Date(n.dataset.e)
+    )
+    .sort((a,b)=>a.dataset.l-b.dataset.l);
+
+  nodes.forEach(n=>{
+    let sym=n.querySelector(".vimSym");
+    if(sym){
+      sym.textContent=VIM_SYMBOLS[n.dataset.l] || "";
+    }
+  });
+}
+
+
+
+// initialize after page build
+setTimeout(()=>{
+  setVimToday();
+  highlightTodayVim();
+},50);
+
+
+
+
+
+function shiftVim(dir){
+
+  const step=document.getElementById("vimCalibStep");
+  if(!step) return;
+
+  let days=parseInt(step.value,10) || 0;
+
+  VIM_CALIB_OFFSET_DAYS += dir * days;
+
+  buildVimshottari();
+}
+
+
+
+
+
+
+
+
+function toggleSignificators(){
+  const c=document.getElementById("sigContainer");
+  c.style.display = (c.style.display==="none") ? "flex" : "none";
+}
+
+
+
+</script>
+
+</body>
+</html>
