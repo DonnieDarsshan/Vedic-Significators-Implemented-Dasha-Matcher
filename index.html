@@ -81,13 +81,54 @@ button{
 }
 
 
-.pivotBar select{
+.pivotBar select,
+#kundaliPivotVim{
   background:#010a08;
   color:#ecfdf5;
   border:1px solid #10b981;
   padding:4px 8px;
   font-weight:700;
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  color-scheme:dark;
 }
+
+.pivotBar select option,
+#kundaliPivotVim option{
+  background:#010a08;
+  color:#ecfdf5;
+}
+
+/* Scrollbar styling (Chrome, Edge, Safari) */
+.pivotBar select::-webkit-scrollbar,
+#kundaliPivotVim::-webkit-scrollbar{
+  width:10px;
+}
+
+.pivotBar select::-webkit-scrollbar-track,
+#kundaliPivotVim::-webkit-scrollbar-track{
+  background:#010a08;
+}
+
+.pivotBar select::-webkit-scrollbar-thumb,
+#kundaliPivotVim::-webkit-scrollbar-thumb{
+  background:#064e3b;
+  border-radius:6px;
+}
+
+.pivotBar select::-webkit-scrollbar-thumb:hover,
+#kundaliPivotVim::-webkit-scrollbar-thumb:hover{
+  background:#10b981;
+}
+
+/* Firefox */
+.pivotBar select,
+#kundaliPivotVim{
+  scrollbar-width:thin;
+  scrollbar-color:#064e3b #010a08;
+}
+
 
 
 /* SOUTH INDIAN KUNDALI */
@@ -105,7 +146,9 @@ button{
   border:1px solid var(--soft);
   padding:10px;
   position:relative;
-  font-size:13px;
+  font-size:14px;
+  font-family:'Segoe UI Semibold','Noto Sans',sans-serif;
+  font-weight:600;
 }
 
 .siCenter{
@@ -150,7 +193,9 @@ button{
   margin-top:18px;
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:6px;
+  font-family:'Segoe UI Semibold','Noto Sans',sans-serif;
+  font-weight:600;
 }
 </style>
 </head>
@@ -199,7 +244,7 @@ button{
   <label><input type="checkbox" id="useAspects" > Aspects</label>
   <label><input type="checkbox" id="useConjCusps" checked> Conjunct Cuspal</label>
   <label><input type="checkbox" id="splitSig"> Split</label>
-  <label><input type="checkbox" id="splitSig2" checked> Split 2</label>
+  <label><input type="checkbox" id="splitSig2"> Split 2</label>
 
 </div>
 
@@ -230,6 +275,10 @@ button{
   <label><input type="checkbox" id="hideVimDates" checked> Hide Dates</label>
 <label><input type="checkbox" id="useMonthNames" checked> Month</label>
 <label><input type="checkbox" id="knVimToggle" checked> KN</label>
+<label><input type="checkbox" id="birthStartToggle" checked> Birth Start</label>
+<label><input type="checkbox" id="showAgeYears" checked> Age (Years)</label>
+<label><input type="checkbox" id="hideBhuktiAge" checked> HIDE AGE</label>
+
 
 </div>
 
@@ -252,6 +301,10 @@ button{
   font-weight:900;
   color:#d4af37;
 ">
+
+	<span>Pivot :</span>
+	<select id="kundaliPivotVim"></select>
+
   <button onclick="setVimToday()">Current Transit</button>
   <input type="date" id="vimEventDate">
   <button onclick="findVimTransit()">Find</button>
@@ -286,9 +339,12 @@ button{
 
 
 
+<div style="text-align:center;font-size:28px;font-weight:900;margin-top:40px;color:#d4af37">
+  Vimshottari Dasha - Chandra
+</div>
 
 <div id="vimshottariContainer" style="
-  margin-top:30px;
+  margin-top:10px;
   padding:20px;
   border-top:2px solid #10b981;
   display:flex;
@@ -296,11 +352,90 @@ button{
   gap:6px;
   font-weight:700;
   font-family:Consolas, monospace, 'Noto Sans Kannada';
-  width:960px;
+  width:100%;
+  max-width:1400px;
   margin-left:auto;
   margin-right:auto;
 "></div>
 
+<div style="text-align:center;font-size:28px;font-weight:900;margin-top:40px;color:#d4af37">
+  Yogini Dasha - Chandra
+</div>
+
+
+
+
+
+
+
+<div id="yoginiDashaContainer" style="
+  margin-top:10px;
+  padding:20px;
+  border-top:2px solid #10b981;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-weight:700;
+  font-family:Consolas, monospace, 'Noto Sans Kannada';
+  width:100%;
+  max-width:1400px;
+  margin-left:auto;
+  margin-right:auto;
+"></div>
+
+
+
+
+
+
+
+
+
+
+<div style="text-align:center;font-size:28px;font-weight:900;margin-top:40px;color:#d4af37">
+  Vimshottari Dasha - Lagna
+</div>
+
+<div id="lagnaDashaContainer" style="
+  margin-top:10px;
+  padding:20px;
+  border-top:2px solid #10b981;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-weight:700;
+  font-family:Consolas, monospace, 'Noto Sans Kannada';
+  width:100%;
+  max-width:1400px;
+  margin-left:auto;
+  margin-right:auto;
+"></div>
+
+
+
+
+
+
+<div style="text-align:center;font-size:28px;font-weight:900;margin-top:40px;color:#d4af37">
+  Yogini Dasha - Lagna
+</div>
+
+
+
+<div id="yoginiDashaContainerLagna" style="
+  margin-top:10px;
+  padding:20px;
+  border-top:2px solid #10b981;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-weight:700;
+  font-family:Consolas, monospace, 'Noto Sans Kannada';
+  width:100%;
+  max-width:1400px;
+  margin-left:auto;
+  margin-right:auto;
+"></div>
 
 
 
@@ -808,21 +943,55 @@ if(document.getElementById("showCusps")?.checked){
 		buckets[sign].sort((a,b)=>b.deg-a.deg);
 	  }
 
-	 buckets[sign].forEach(p=>{
-	  let d=document.createElement("div");
 
-	  if(p.type==="cusp"){
-		d.textContent = p.text;
-		d.style.color="#10b981";
-		d.style.fontWeight="900";
-	  
-	  
-	  }else{
-	  let minText = (p.min!==undefined)
-		? String(p.min).padStart(2,"0")+"′"
-		: "";
-	  d.textContent=`${p.label} ${p.deg}°${minText}`;
-	}
+
+
+
+
+
+	buckets[sign].forEach(p=>{
+  let d=document.createElement("div");
+
+  if(p.type==="cusp"){
+    d.textContent = p.text;
+    d.style.color="#10b981";
+    d.style.fontWeight="900";
+  
+  }else{
+    let minText = (p.min!==undefined)
+      ? String(p.min).padStart(2,"0")+"′"
+      : "";
+    d.textContent=`${p.label} ${p.deg}°${minText}`;
+
+    // make all planets bold
+    d.style.fontWeight="900";
+
+    // pivot highlight
+    // pivot highlight
+		let pivot=document.getElementById("kundaliPivot").value;
+
+		// normal planet match
+		if(p.label===pivot){
+		  d.style.color="#ffff00";
+		  d.style.fontSize="15px";
+		}
+
+		// CSL match (pivot is "1 CSL" but label is "C1")
+		if(pivot.includes("CSL")){
+		  let num = parseInt(pivot);
+		  if(p.label==="C"+num){
+			d.style.color="#ffff00";
+			d.style.fontSize="15px";
+		  }
+		}
+
+  }
+
+
+
+
+
+
 
 	  
 
@@ -862,16 +1031,33 @@ reader.onload=()=>{
 }
 
 (function(){
-  let sel=document.getElementById("kundaliPivot");
+  let sel1=document.getElementById("kundaliPivot");
+  let sel2=document.getElementById("kundaliPivotVim");
+
   planets.forEach(p=>{
-    let o=document.createElement("option");
-    o.value=o.text=p;
-    sel.appendChild(o);
+    let o1=document.createElement("option");
+    o1.value=o1.text=p;
+    sel1.appendChild(o1);
+
+    let o2=document.createElement("option");
+    o2.value=o2.text=p;
+    sel2.appendChild(o2);
   });
-  sel.value="Lagna";
+
+  sel1.value="Lagna";
+  sel2.value="Lagna";
 })();
 
-document.getElementById("kundaliPivot").addEventListener("change", () => {
+
+document.getElementById("kundaliPivot").addEventListener("change", (e) => {
+  document.getElementById("kundaliPivotVim").value = e.target.value;
+  drawSIKundali();
+  buildSignificatorTable();
+  buildVimshottari();
+});
+
+document.getElementById("kundaliPivotVim").addEventListener("change", (e) => {
+  document.getElementById("kundaliPivot").value = e.target.value;
   drawSIKundali();
   buildSignificatorTable();
   buildVimshottari();
@@ -917,7 +1103,7 @@ document.getElementById("splitSig2").addEventListener("change",()=>{
 
 
 
-["hideVimDates","useMonthNames","knVimToggle"].forEach(id=>{
+["hideVimDates","useMonthNames","knVimToggle","birthStartToggle","showAgeYears","hideBhuktiAge"].forEach(id=>{
   document.getElementById(id).addEventListener("change",()=>{
     USE_KN_VIM = document.getElementById("knVimToggle").checked;
     buildVimshottari();
@@ -1457,6 +1643,36 @@ function getPlanetSignificators(planet){
 
 
 
+
+
+
+
+
+
+function getYoginiSignificators(lord){
+
+  // Sankata special rule
+  if(lord==="Rahu"){
+    let r = getPlanetSignificators("Rahu");
+    let k = getPlanetSignificators("Ketu");
+
+    if(r==="-" && k==="-" ) return "-";
+    if(r==="-" ) return k;
+    if(k==="-" ) return r;
+
+    return r + " + " + k;
+  }
+
+  return getPlanetSignificators(lord);
+}
+
+
+
+
+
+
+
+
 /* =========================
    KANNADA LANGUAGE SYSTEM
    ========================= */
@@ -1475,7 +1691,17 @@ const KN_VIM = {
   Rahu:"ರಾಹು",
   Jupiter:"ಗುರು",
   Saturn:"ಶನಿ",
-  Budha:"ಬುಧ"
+  Budha:"ಬುಧ",
+
+  /* Yogini names */
+  Mangala_Y:"ಮಂಗಳ",
+  Pingala:"ಪಿಂಗಳ",
+  Dhanya:"ಧನ್ಯ",
+  Bhramari:"ಭ್ರಮರಿ",
+  Bhadrika:"ಭದ್ರಿಕ",
+  Ulka:"ಉಲ್ಕಾ",
+  Sidda:"ಸಿದ್ದ",
+  Sankata:"ಸಂಕಟ"
 };
 
 function TVIM(txt){
@@ -1504,6 +1730,7 @@ const DASHA_YEARS={
 
 
 let VIM_CALIB_OFFSET_DAYS = 0;
+let VIM_BIRTH_DATE = null;
 
 
 const VIM_SYMBOLS={
@@ -1517,9 +1744,419 @@ const VIM_SYMBOLS={
 
 
 
+/* =========================
+   YOGINI CONSTANTS
+   ========================= */
+const YOGINI_ORDER=[
+  {name:"Mangala", lord:"Chandra", years:1},
+  {name:"Pingala", lord:"Surya", years:2},
+  {name:"Dhanya", lord:"Jupiter", years:3},
+  {name:"Bhramari", lord:"Mangala", years:4},
+  {name:"Bhadrika", lord:"Budha", years:5},
+  {name:"Ulka", lord:"Saturn", years:6},
+  {name:"Sidda", lord:"Venus", years:7},
+  {name:"Sankata", lord:"Rahu", years:8}
+];
 
 
 
+
+
+
+
+
+
+
+
+function buildFullDasha(containerId, basePlanet) {
+
+  const box = document.getElementById(containerId);
+  box.innerHTML = "";
+
+  if (!window.__lastSwissData) {
+    box.innerHTML = "<div style='text-align:center'>Load chart to view Vimshottari</div>";
+    return;
+  }
+
+  const MS_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+  const nakSize = 360 / 27;
+
+  let baseAbs = getAbsDeg(basePlanet);
+  if (baseAbs == null) return;
+
+  let nakIndex = Math.floor(baseAbs / nakSize);
+  let startLord = NAKSHATRA_LORDS[nakIndex];
+  let frac = (baseAbs % nakSize) / nakSize;
+  let elapsedYears = DASHA_YEARS[startLord] * frac;
+
+  const data = window.__lastSwissData;
+  let birthDate = new Date(data.meta.datetime_utc);
+  VIM_BIRTH_DATE = birthDate;
+
+  let mahaStart = new Date(
+    birthDate.getTime()
+    - elapsedYears * MS_YEAR
+    + (VIM_CALIB_OFFSET_DAYS * 24 * 60 * 60 * 1000)
+  );
+
+  let startIndex = DASHA_ORDER.indexOf(startLord);
+  let order = [...DASHA_ORDER.slice(startIndex), ...DASHA_ORDER.slice(0, startIndex)];
+
+  const GRID_STYLE =
+  "display:grid; grid-template-columns: 35px 210px 420px 50px 1fr; align-items: center; width: 100%; box-sizing: border-box;";
+
+  order.forEach(mahaLord => {
+
+    let mahaYears = DASHA_YEARS[mahaLord];
+    let mahaEnd = new Date(mahaStart.getTime() + mahaYears * MS_YEAR);
+    let mahaSig = getPlanetSignificators(mahaLord);
+
+    let mahaRow = document.createElement("div");
+    mahaRow.dataset.s = mahaStart;
+    mahaRow.dataset.e = mahaEnd;
+    mahaRow.dataset.l = 1;
+    mahaRow.style = GRID_STYLE + "cursor:pointer; padding:8px 10px; margin-top:5px; border:1px solid #10b981; background:#021b16; color:#ecfdf5;";
+
+    let mahaData = formatDashaLine("Mahadasha", mahaLord, mahaSig, mahaStart, mahaEnd);
+
+    if (document.getElementById("birthStartToggle")?.checked && order.indexOf(mahaLord) === 0) {
+      let bTxt = formatDateSmart(birthDate);
+      if (document.getElementById("showAgeYears")?.checked) bTxt += " (0 y)";
+      mahaData.start = bTxt;
+    }
+
+    mahaRow.innerHTML = `
+      <div class="vimSym" style="font-weight:900;"></div>
+      <div style="font-weight:900; white-space:nowrap;">${mahaData.level} – ${mahaData.lord}</div>
+      <div style="font-weight:900; white-space:nowrap; font-size: 0.95em; display:flex; align-items:center; gap:5px;">
+        <span style="min-width:175px;">${mahaData.start}</span>
+        <span style="color:#d4af37; min-width:60px; text-align:center; letter-spacing:-2px;">→→→</span>
+        <span style="min-width:175px;">${mahaData.end}</span>
+      </div>
+      <div style="text-align:center; opacity:0.5; padding-left:10px;">|</div>
+      <div style="color:var(--accent); font-weight:900; padding-left:10px;">${mahaData.sig}</div>
+    `;
+
+    let bhuktiBox = document.createElement("div");
+    bhuktiBox.style.display = "none";
+
+    let bhuktiIndex = DASHA_ORDER.indexOf(mahaLord);
+    let bhuktiOrder = [...DASHA_ORDER.slice(bhuktiIndex), ...DASHA_ORDER.slice(0, bhuktiIndex)];
+    let bhuktiStart = new Date(mahaStart);
+
+    bhuktiOrder.forEach(bhuktiLord => {
+
+      let bhuktiYears = mahaYears * (DASHA_YEARS[bhuktiLord] / 120);
+      let bhuktiEnd = new Date(bhuktiStart.getTime() + bhuktiYears * MS_YEAR);
+      let bhuktiSig = getPlanetSignificators(bhuktiLord);
+
+      let bhuktiRow = document.createElement("div");
+      bhuktiRow.dataset.s = bhuktiStart;
+      bhuktiRow.dataset.e = bhuktiEnd;
+      bhuktiRow.dataset.l = 2;
+      bhuktiRow.style = GRID_STYLE + "cursor:pointer; padding:6px 10px; margin:2px 0; border:1px solid #064e3b; background:#010a08; color:#ecfdf5;";
+
+      let bhuktiData = formatDashaLine("Bhukti", bhuktiLord, bhuktiSig, bhuktiStart, bhuktiEnd);
+
+      bhuktiRow.innerHTML = `
+        <div class="vimSym" style="font-weight:900;"></div>
+        <div style="font-weight:900; white-space:nowrap;">${bhuktiData.level} – ${bhuktiData.lord}</div>
+        <div style="font-weight:900; white-space:nowrap; font-size:0.95em; display:flex; align-items:center; gap:5px;">
+          <span style="min-width:175px;">${bhuktiData.start}</span>
+          <span style="color:#d4af37; min-width:60px; text-align:center; letter-spacing:-2px;">→→→</span>
+          <span style="min-width:175px;">${bhuktiData.end}</span>
+        </div>
+        <div style="text-align:center; opacity:0.3; padding-left:10px;">|</div>
+        <div style="color:var(--accent); font-weight:900; padding-left:10px;">${bhuktiData.sig}</div>
+      `;
+
+      let antaraBox = document.createElement("div");
+      antaraBox.style.display = "none";
+
+      let antaraIndex = DASHA_ORDER.indexOf(bhuktiLord);
+      let antaraOrder = [...DASHA_ORDER.slice(antaraIndex), ...DASHA_ORDER.slice(0, antaraIndex)];
+      let antaraStart = new Date(bhuktiStart);
+
+      antaraOrder.forEach(antaraLord => {
+
+        let antaraYears = bhuktiYears * (DASHA_YEARS[antaraLord] / 120);
+        let antaraEnd = new Date(antaraStart.getTime() + antaraYears * MS_YEAR);
+        let antaraSig = getPlanetSignificators(antaraLord);
+
+        let line = document.createElement("div");
+        line.dataset.s = antaraStart;
+        line.dataset.e = antaraEnd;
+        line.dataset.l = 3;
+        line.style = GRID_STYLE + "cursor:pointer; padding:4px 10px; margin:1px 0; border:1px solid #1e3a8a; background:#0f172a; color:#ccfbf1;";
+
+        let antaraData = formatDashaLine("Antara", antaraLord, antaraSig, antaraStart, antaraEnd);
+
+        line.innerHTML = `
+          <div class="vimSym" style="font-weight:900;"></div>
+          <div style="font-weight:900; white-space:nowrap;">${antaraData.level} – ${antaraData.lord}</div>
+          <div style="font-weight:900; white-space:nowrap; font-size:0.95em; display:flex; align-items:center; gap:5px;">
+            <span style="min-width:175px;">${antaraData.start}</span>
+            <span style="color:#d4af37; min-width:60px; text-align:center; letter-spacing:-2px;">→→→</span>
+            <span style="min-width:175px;">${antaraData.end}</span>
+          </div>
+          <div style="text-align:center; opacity:0.2; padding-left:10px;">|</div>
+          <div style="color:var(--accent); font-weight:900; padding-left:10px;">${antaraData.sig}</div>
+        `;
+
+        line.onclick = (e)=>{
+          e.stopPropagation();
+          line.classList.toggle("active")
+            ? (line.style.background="#0f766e", line.style.border="2px solid #2dd4bf")
+            : (line.style.background="#0f172a", line.style.border="1px solid #1e3a8a");
+        };
+
+        antaraBox.appendChild(line);
+        antaraStart = antaraEnd;
+      });
+
+      bhuktiRow.onclick = (e)=>{
+        e.stopPropagation();
+        const isOpen = antaraBox.style.display==="block";
+        antaraBox.style.display = isOpen?"none":"block";
+        bhuktiRow.style.background = isOpen?"#010a08":"#7f1d1d";
+      };
+
+      bhuktiBox.appendChild(bhuktiRow);
+      bhuktiBox.appendChild(antaraBox);
+      bhuktiStart = bhuktiEnd;
+    });
+
+    mahaRow.onclick=()=>{
+      const isOpen = bhuktiBox.style.display==="block";
+      bhuktiBox.style.display = isOpen?"none":"block";
+      mahaRow.style.background = isOpen?"#021b16":"#2b0a3d";
+    };
+
+    box.appendChild(mahaRow);
+    box.appendChild(bhuktiBox);
+    mahaStart = mahaEnd;
+  });
+}
+
+
+
+
+function buildYoginiDasha(containerId, basePlanet){
+
+  const box=document.getElementById(containerId);
+  box.innerHTML="";
+
+  if(!window.__lastSwissData){
+    box.innerHTML="<div style='text-align:center'>Load chart to view Yogini</div>";
+    return;
+  }
+
+  const MS_YEAR = 365.25*24*60*60*1000;
+  const nakSize = 360/27;
+
+  let baseAbs=getAbsDeg(basePlanet);
+  if(baseAbs==null) return;
+
+
+
+
+
+
+
+let nakIndex = Math.floor(baseAbs / nakSize);
+let idx = (nakIndex + 3) % 8;
+
+let data = window.__lastSwissData;
+let birth = new Date(data.meta.datetime_utc);
+
+let first = YOGINI_ORDER[idx];
+
+let nakStart = nakIndex * nakSize;
+let elapsedDeg = baseAbs - nakStart;
+if(elapsedDeg < 0) elapsedDeg += 360;
+
+let elapsedYears = (elapsedDeg / nakSize) * first.years;
+let cur = new Date(birth.getTime() - elapsedYears * MS_YEAR);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  const GRID_STYLE =
+  "display:grid; grid-template-columns: 35px 210px 420px 50px 1fr; align-items: center; width: 100%; box-sizing: border-box;";
+
+  for(let cycle=0;cycle<3;cycle++){
+    for(let i=0;i<8;i++){
+
+      let y=YOGINI_ORDER[(idx+i)%8];
+      let end=new Date(cur.getTime()+y.years*MS_YEAR);
+
+      let sig=getYoginiSignificators(y.lord);
+
+      let row=document.createElement("div");
+      row.dataset.s=cur;
+      row.dataset.e=end;
+      row.dataset.l=1;
+      row.style=GRID_STYLE+
+        "cursor:pointer; padding:8px 10px; margin-top:5px; border:1px solid #10b981; background:#021b16; color:#ecfdf5;";
+
+      let rowData = formatDashaLine("Mahadasha", y.name, sig, cur, end);
+		
+		
+		
+		
+	let startTxt = rowData.start;
+	let endTxt = rowData.end;
+
+	if(
+	  document.getElementById("birthStartToggle")?.checked &&
+	  cycle===0 &&
+	  i===0
+	){
+	  let bTxt = formatDateSmart(birth);
+	  if(document.getElementById("showAgeYears")?.checked){
+		bTxt += " (0 y)";
+	  }
+	  startTxt = bTxt;
+	}
+
+
+
+      row.innerHTML=`
+        <div class="vimSym"></div>
+        <div style="font-weight:900; white-space:nowrap;">
+          ${TVIM("Mahadasha")} – ${TVIM(y.name==="Mangala"?"Mangala_Y":y.name)}
+        </div>
+        <div style="font-weight:900; white-space:nowrap; font-size:0.95em; display:flex; align-items:center; gap:5px;">
+          <span style="min-width:175px;">${startTxt}</span>
+          <span style="color:#d4af37; min-width:60px; text-align:center; letter-spacing:-2px;">→→→</span>
+          <span style="min-width:175px;">${endTxt}</span>
+        </div>
+        <div style="text-align:center; opacity:0.5; padding-left:10px;">|</div>
+        <div style="color:var(--accent); font-weight:900; padding-left:10px;">
+          ${sig}
+        </div>
+      `;
+
+      
+	        let bhuktiBox=document.createElement("div");
+      bhuktiBox.style.display="none";
+
+      let bhuktiStart=new Date(cur);
+
+      for(let j=0;j<8;j++){
+
+        let b=YOGINI_ORDER[(idx+i+j)%8];
+        let bhuktiYears=y.years*(b.years/36);
+        let bhuktiEnd=new Date(bhuktiStart.getTime()+bhuktiYears*MS_YEAR);
+
+        let bhuktiSig=getYoginiSignificators(b.lord);
+
+        let bhuktiRow=document.createElement("div");
+        bhuktiRow.dataset.s=bhuktiStart;
+        bhuktiRow.dataset.e=bhuktiEnd;
+        bhuktiRow.dataset.l=2;
+        bhuktiRow.style=GRID_STYLE+
+          "cursor:pointer; padding:6px 10px; margin:2px 0; border:1px solid #064e3b; background:#010a08; color:#ecfdf5;";
+
+        let bStartTxt=formatDateSmart(bhuktiStart);
+        let bEndTxt=formatDateSmart(bhuktiEnd);
+
+        bhuktiRow.innerHTML=`
+          <div class="vimSym"></div>
+          <div style="font-weight:900; white-space:nowrap;">
+            ${TVIM("Bhukti")} – ${b.name}
+          </div>
+          <div style="font-weight:900; white-space:nowrap; font-size:0.95em; display:flex; align-items:center; gap:5px;">
+            <span style="min-width:175px;">${bStartTxt}</span>
+            <span style="color:#d4af37; min-width:60px; text-align:center; letter-spacing:-2px;">→→→</span>
+            <span style="min-width:175px;">${bEndTxt}</span>
+          </div>
+          <div style="text-align:center; opacity:0.3; padding-left:10px;">|</div>
+          <div style="color:var(--accent); font-weight:900; padding-left:10px;">
+            ${bhuktiSig}
+          </div>
+        `;
+
+        let antaraBox=document.createElement("div");
+        antaraBox.style.display="none";
+
+        let antaraStart=new Date(bhuktiStart);
+
+        for(let k=0;k<8;k++){
+
+          let a=YOGINI_ORDER[(idx+i+j+k)%8];
+          let antaraYears=bhuktiYears*(a.years/36);
+          let antaraEnd=new Date(antaraStart.getTime()+antaraYears*MS_YEAR);
+
+          let antaraSig=getYoginiSignificators(a.lord);
+
+          let line=document.createElement("div");
+          line.dataset.s=antaraStart;
+          line.dataset.e=antaraEnd;
+          line.dataset.l=3;
+          line.style=GRID_STYLE+
+            "cursor:pointer; padding:4px 10px; margin:1px 0; border:1px solid #1e3a8a; background:#0f172a; color:#ccfbf1;";
+
+          let aStartTxt=formatDateSmart(antaraStart);
+          let aEndTxt=formatDateSmart(antaraEnd);
+
+          line.innerHTML=`
+            <div class="vimSym"></div>
+            <div style="font-weight:900; white-space:nowrap;">
+              ${TVIM("Antara")} – ${a.name}
+            </div>
+            <div style="font-weight:900; white-space:nowrap; font-size:0.95em; display:flex; align-items:center; gap:5px;">
+              <span style="min-width:175px;">${aStartTxt}</span>
+              <span style="color:#d4af37; min-width:60px; text-align:center; letter-spacing:-2px;">→→→</span>
+              <span style="min-width:175px;">${aEndTxt}</span>
+            </div>
+            <div style="text-align:center; opacity:0.2; padding-left:10px;">|</div>
+            <div style="color:var(--accent); font-weight:900; padding-left:10px;">
+              ${antaraSig}
+            </div>
+          `;
+
+          antaraBox.appendChild(line);
+          antaraStart=antaraEnd;
+        }
+
+        bhuktiRow.onclick=(e)=>{
+          e.stopPropagation();
+          const isOpen=antaraBox.style.display==="block";
+          antaraBox.style.display=isOpen?"none":"block";
+          bhuktiRow.style.background=isOpen?"#010a08":"#7f1d1d";
+        };
+
+        bhuktiBox.appendChild(bhuktiRow);
+        bhuktiBox.appendChild(antaraBox);
+        bhuktiStart=bhuktiEnd;
+      }
+
+      row.onclick=()=>{
+        const isOpen=bhuktiBox.style.display==="block";
+        bhuktiBox.style.display=isOpen?"none":"block";
+        row.style.background=isOpen?"#021b16":"#2b0a3d";
+      };
+
+      box.appendChild(row);
+      box.appendChild(bhuktiBox);
+      cur=end;
+
+	  
+	  
+	  
+	  
+	  
+    }
+  }
+}
 
 
 
@@ -1529,202 +2166,12 @@ const VIM_SYMBOLS={
 
 
 function buildVimshottari(){
-  const box=document.getElementById("vimshottariContainer");
-  box.innerHTML="";
-
-  if(!window.__lastSwissData){
-    box.innerHTML="<div style='text-align:center'>Load chart to view Vimshottari</div>";
-    return;
-  }
-
-  const MS_YEAR=365.25*24*60*60*1000;
-  const nakSize=360/27;
-
-  let moonAbs=getAbsDeg("Chandra");
-  if(moonAbs==null) return;
-
-  let nakIndex=Math.floor(moonAbs/nakSize);
-  let startLord=NAKSHATRA_LORDS[nakIndex];
-  let frac=(moonAbs%nakSize)/nakSize;
-  let elapsedYears=DASHA_YEARS[startLord]*frac;
-
-  const data=window.__lastSwissData;
-  let birthDate=new Date(data.meta.datetime_utc);
-
-  let mahaStart=new Date(birthDate.getTime()-elapsedYears*MS_YEAR + (VIM_CALIB_OFFSET_DAYS * 24*60*60*1000));
-
-  let startIndex=DASHA_ORDER.indexOf(startLord);
-  let order=[...DASHA_ORDER.slice(startIndex),...DASHA_ORDER.slice(0,startIndex)];
-
-  order.forEach(mahaLord=>{
-    let mahaYears=DASHA_YEARS[mahaLord];
-    let mahaEnd=new Date(mahaStart.getTime()+mahaYears*MS_YEAR);
-    let mahaSig=getPlanetSignificators(mahaLord);
-    let mahaRow=document.createElement("div");
-	
-    mahaRow.dataset.s = mahaStart;
-    mahaRow.dataset.e = mahaEnd;
-    mahaRow.dataset.l = 1;
-
-    mahaRow.style.cursor="pointer";
-    mahaRow.style.padding="6px 10px";
-    mahaRow.style.marginTop="4px";
-    mahaRow.style.border="1px solid #10b981";
-    mahaRow.style.background="#021b16";
-    mahaRow.style.color="#ecfdf5";
-    mahaRow.style.display = "grid";
-    mahaRow.style.width = "960px";
-    // Fixed columns: Sym, Lord/Level, StartDate, Arrow, EndDate, Separator, Significator
-    mahaRow.style.gridTemplateColumns = "40px 220px 140px 60px 140px 30px auto";
-
-    let mahaData = formatDashaLine("Mahadasha", mahaLord, mahaSig, mahaStart, mahaEnd);
-
-    // CHANGED: text-align: left for all columns
-    mahaRow.innerHTML = `
-        <div style="text-align:left; font-weight:900;"><span class="vimSym"></span></div>
-        <div style="white-space:nowrap; font-weight:900; text-align:left;">${mahaData.level} – ${mahaData.lord}</div>
-        <div style="text-align:left; font-weight:900;">${mahaData.start}</div>
-        <div style="text-align:left; font-weight:900;">→→→</div>
-        <div style="text-align:left; font-weight:900;">${mahaData.end}</div>
-        <div style="text-align:left; font-weight:900;">||</div>
-        <div style="padding-left:15px; color:var(--accent); font-weight:900; text-align:left;">${mahaData.sig}</div>
-    `;
-
-    let bhuktiBox=document.createElement("div");
-    bhuktiBox.style.display="none";
-    bhuktiBox.style.paddingLeft="50px"; // CHANGED: Indentation removed for alignment
-
-    let bhuktiIndex=DASHA_ORDER.indexOf(mahaLord);
-    let bhuktiOrder=[...DASHA_ORDER.slice(bhuktiIndex),...DASHA_ORDER.slice(0,bhuktiIndex)];
-    let bhuktiStart=new Date(mahaStart);
-
-    bhuktiOrder.forEach(bhuktiLord=>{
-      let bhuktiYears=mahaYears*(DASHA_YEARS[bhuktiLord]/120);
-      let bhuktiEnd=new Date(bhuktiStart.getTime()+bhuktiYears*MS_YEAR);
-      let bhuktiSig=getPlanetSignificators(bhuktiLord);
-      let bhuktiRow=document.createElement("div");
-	  
-      bhuktiRow.dataset.s = bhuktiStart;
-      bhuktiRow.dataset.e = bhuktiEnd;
-      bhuktiRow.dataset.l = 2;
-
-      bhuktiRow.style.cursor="pointer";
-      bhuktiRow.style.padding="4px 10px";
-      bhuktiRow.style.margin="2px 0";
-      bhuktiRow.style.border="1px solid #064e3b";
-      bhuktiRow.style.background="#010a08";
-      bhuktiRow.style.color="#ecfdf5";
-      bhuktiRow.style.display = "grid";
-      bhuktiRow.style.width = "960px";
-      bhuktiRow.style.gridTemplateColumns = "40px 220px 140px 60px 140px 30px auto";
-
-      let bhuktiData = formatDashaLine("Bhukti", bhuktiLord, bhuktiSig, bhuktiStart, bhuktiEnd);
-
-      bhuktiRow.innerHTML = `
-          <div style="text-align:left; font-weight:900;"><span class="vimSym"></span></div>
-          <div style="white-space:nowrap; font-weight:900; text-align:left;">${bhuktiData.level} – ${bhuktiData.lord}</div>
-          <div style="text-align:left; font-weight:900;">${bhuktiData.start}</div>
-          <div style="text-align:left; font-weight:900;">→→→</div>
-          <div style="text-align:left; font-weight:900;">${bhuktiData.end}</div>
-          <div style="text-align:left; font-weight:900;">||</div>
-          <div style="padding-left:15px; color:var(--accent); font-weight:900; text-align:left;">${bhuktiData.sig}</div>
-      `;
-
-      let antaraBox=document.createElement("div");
-      antaraBox.style.display="none";
-      antaraBox.style.paddingLeft="50px"; // CHANGED: Indentation removed for alignment
-
-      let antaraIndex=DASHA_ORDER.indexOf(bhuktiLord);
-      let antaraOrder=[...DASHA_ORDER.slice(antaraIndex),...DASHA_ORDER.slice(0,antaraIndex)];
-      let antaraStart=new Date(bhuktiStart);
-
-      antaraOrder.forEach(antaraLord=>{
-        let antaraYears=bhuktiYears*(DASHA_YEARS[antaraLord]/120);
-        let antaraEnd=new Date(antaraStart.getTime()+antaraYears*MS_YEAR);
-        let antaraSig=getPlanetSignificators(antaraLord);
-        let line=document.createElement("div");
-
-        line.dataset.s = antaraStart;
-        line.dataset.e = antaraEnd;
-        line.dataset.l = 3;
-	  
-        line.style.padding="3px 10px";
-        line.style.margin="1px 0";
-        line.style.border="1px solid #1e3a8a";
-        line.style.background="#0f172a";
-        line.style.color="#ccfbf1";
-        line.style.cursor="pointer";
-        line.style.display = "grid";
-        line.style.width = "960px";
-        line.style.gridTemplateColumns = "40px 220px 140px 60px 140px 30px auto";
-
-        let antaraData = formatDashaLine("Antara", antaraLord, antaraSig, antaraStart, antaraEnd);
-
-        line.innerHTML = `
-            <div style="text-align:left; font-weight:900;"><span class="vimSym"></span></div>
-            <div style="white-space:nowrap; font-weight:900; text-align:left;">${antaraData.level} – ${antaraData.lord}</div>
-            <div style="text-align:left; font-weight:900;">${antaraData.start}</div>
-            <div style="text-align:left; font-weight:900;">→→→</div>
-            <div style="text-align:left; font-weight:900;">${antaraData.end}</div>
-            <div style="text-align:left; font-weight:900;">||</div>
-            <div style="padding-left:15px; color:var(--accent); font-weight:900; text-align:left;">${antaraData.sig}</div>
-        `;
-
-        line.onclick=()=>{
-          if(line.classList.toggle("active")){
-            line.style.background="#0f766e";
-            line.style.border="2px solid #2dd4bf";
-          }else{
-            line.style.background="#0f172a";
-            line.style.border="1px solid #1e3a8a";
-          }
-        };
-
-        antaraBox.appendChild(line);
-        antaraStart=antaraEnd;
-      });
-
-      bhuktiRow.onclick=()=>{
-        const isOpen = antaraBox.style.display==="block";
-        antaraBox.style.display = isOpen ? "none" : "block";
-        if(isOpen){
-          bhuktiRow.style.background="#010a08";
-          bhuktiRow.style.color="#ecfdf5";
-          bhuktiRow.style.border="1px solid #064e3b";
-        }else{
-          bhuktiRow.style.background="#7f1d1d";
-          bhuktiRow.style.color="#fee2e2";
-          bhuktiRow.style.border="2px solid #dc2626";
-        }
-      };
-
-      bhuktiBox.appendChild(bhuktiRow);
-      bhuktiBox.appendChild(antaraBox);
-      bhuktiStart=bhuktiEnd;
-    });
-
-    mahaRow.onclick=()=>{
-      const isOpen = bhuktiBox.style.display==="block";
-      bhuktiBox.style.display = isOpen ? "none" : "block";
-      if(isOpen){
-        mahaRow.style.background="#021b16";
-        mahaRow.style.color="#ecfdf5";
-        mahaRow.style.border="1px solid #10b981";
-      }else{
-        mahaRow.style.background="#2b0a3d";
-        mahaRow.style.color="#ecfdf5";
-        mahaRow.style.border="2px solid #a855f7";
-      }
-    };
-
-    box.appendChild(mahaRow);
-    box.appendChild(bhuktiBox);
-    mahaStart=mahaEnd;
-  });
+  buildFullDasha("vimshottariContainer","Chandra");
+  buildFullDasha("lagnaDashaContainer","Lagna");
+  buildYoginiDasha("yoginiDashaContainer","Chandra");
+  buildYoginiDasha("yoginiDashaContainerLagna","Lagna");
   setTimeout(highlightTodayVim,0);
 }
-
-
 
 
 
@@ -1750,6 +2197,35 @@ function formatDashaLine(level, lord, sig, start, end){
   let startTxt=formatDateSmart(start);
   let endTxt=formatDateSmart(end);
 
+  /* AGE DISPLAY */
+ const showAge = document.getElementById("showAgeYears")?.checked;
+const hideBhukti = document.getElementById("hideBhuktiAge")?.checked;
+
+if(
+  showAge &&
+  VIM_BIRTH_DATE &&
+  (
+    level==="Mahadasha" ||
+    (level==="Bhukti" && !hideBhukti)
+  )
+){
+
+
+
+
+  const MS_YEAR = 365.25*24*60*60*1000;
+
+  let ageStart = Math.floor((start - VIM_BIRTH_DATE) / MS_YEAR);
+  let ageEnd   = Math.floor((end   - VIM_BIRTH_DATE) / MS_YEAR);
+
+  if(ageStart>=0) startTxt += ` (${ageStart} y)`;
+  if(ageEnd>=0)   endTxt   += ` (${ageEnd} y)`;
+}
+
+
+
+
+
  return {
   type:"grid",
   level:TVIM(level),
@@ -1758,13 +2234,8 @@ function formatDashaLine(level, lord, sig, start, end){
   start:startTxt,
   end:endTxt
 };
-
-
-
-
-
-
 }
+
 
 
 
@@ -1844,67 +2315,58 @@ function findVimTransit(){
 
   const d=new Date(inp.value);
 
-  // clear old
-  document.querySelectorAll("#vimshottariContainer .active")
-    .forEach(n=>{
-      n.classList.remove("active");
-      n.style.background="";
-      n.style.color="";
-      n.style.border="";
+  const containers=[
+  "vimshottariContainer",
+  "lagnaDashaContainer",
+  "yoginiDashaContainer",
+  "yoginiDashaContainerLagna"
+];
+
+
+  containers.forEach(id=>{
+
+    document.querySelectorAll("#"+id+" .active")
+      .forEach(n=>{
+        n.classList.remove("active");
+        n.style.background="";
+        n.style.color="";
+        n.style.border="";
+      });
+
+    let nodes=[...document.querySelectorAll("#"+id+" div")]
+      .filter(n=>n.dataset && n.dataset.s)
+      .filter(n =>
+        d>=new Date(n.dataset.s) &&
+        d< new Date(n.dataset.e)
+      )
+      .sort((a,b)=>a.dataset.l-b.dataset.l);
+
+    nodes.forEach(n=>{
+
+      n.classList.add("active");
+
+      if(n.dataset.l==="1"){
+        n.style.background="#2b0a3d";
+        n.style.border="2px solid #a855f7";
+      }
+      if(n.dataset.l==="2"){
+        n.style.background="#7f1d1d";
+        n.style.border="2px solid #dc2626";
+      }
+      if(n.dataset.l==="3"){
+        n.style.background="#0f766e";
+        n.style.border="2px solid #2dd4bf";
+      }
+
+      let parent=n.parentElement;
+      while(parent && parent.id!==id){
+        if(parent.style && parent.style.display==="none"){
+          parent.style.display="block";
+        }
+        parent=parent.parentElement;
+      }
     });
 
-
-  let nodes=[...document.querySelectorAll("#vimshottariContainer div")]
-    .filter(n=>n.dataset && n.dataset.s)
-    .filter(n =>
-      d>=new Date(n.dataset.s) &&
-      d< new Date(n.dataset.e)
-    )
-    .sort((a,b)=>a.dataset.l-b.dataset.l);
-
-  nodes.forEach(n=>{
-
-    n.classList.add("active");
-
-
-
-
-   if(n.dataset.l==="1"){
-  n.style.background="#2b0a3d";
-  n.style.color="#ecfdf5";
-  n.style.border="2px solid #a855f7";
-  }
-
-	
-	
-	
-    if(n.dataset.l==="2"){
-      n.style.background="#7f1d1d";
-      n.style.color="#fee2e2";
-      n.style.border="2px solid #dc2626";
-    }
-    if(n.dataset.l==="3"){
-      n.style.background="#0f766e";
-      n.style.color="#ccfbf1";
-      n.style.border="2px solid #2dd4bf";
-    }
-
-   
-
-
-
-
-       // expand full parent chain
-    let parent = n.parentElement;
-
-    while(parent && parent.id !== "vimshottariContainer"){
-      if(parent.style && parent.style.display==="none"){
-        parent.style.display="block";
-      }
-      parent = parent.parentElement;
-    }
-
-	
   });
 }
 
@@ -1916,23 +2378,34 @@ function highlightTodayVim(){
 
   const today=new Date();
 
-  // clear old symbols
   document.querySelectorAll(".vimSym")
     .forEach(s=>s.textContent="");
 
-  let nodes=[...document.querySelectorAll("#vimshottariContainer div")]
-    .filter(n=>n.dataset && n.dataset.s)
-    .filter(n =>
-      today>=new Date(n.dataset.s) &&
-      today< new Date(n.dataset.e)
-    )
-    .sort((a,b)=>a.dataset.l-b.dataset.l);
+  const containers=[
+  "vimshottariContainer",
+  "lagnaDashaContainer",
+  "yoginiDashaContainer",
+  "yoginiDashaContainerLagna"
+];
 
-  nodes.forEach(n=>{
-    let sym=n.querySelector(".vimSym");
-    if(sym){
-      sym.textContent=VIM_SYMBOLS[n.dataset.l] || "";
-    }
+
+  containers.forEach(id=>{
+
+    let nodes=[...document.querySelectorAll("#"+id+" div")]
+      .filter(n=>n.dataset && n.dataset.s)
+      .filter(n =>
+        today>=new Date(n.dataset.s) &&
+        today< new Date(n.dataset.e)
+      )
+      .sort((a,b)=>a.dataset.l-b.dataset.l);
+
+    nodes.forEach(n=>{
+      let sym=n.querySelector(".vimSym");
+      if(sym){
+        sym.textContent=VIM_SYMBOLS[n.dataset.l] || "";
+      }
+    });
+
   });
 }
 
