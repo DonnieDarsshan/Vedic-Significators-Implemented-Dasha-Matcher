@@ -647,6 +647,7 @@ table tr.clicked-row:hover td * {
                     <option value="N" selected>N</option><option value="S">S</option>
                 </select>
                 <input type="text" id="dmsLatMin" value="20" style="width:45px; text-align:center; font-size: 14px;" oninput="syncCoords('dms')"><span style="color:#facc15;">'</span>
+                <input type="text" id="dmsLatSec" value="24" style="width:45px; text-align:center; font-size: 14px;" oninput="syncCoords('dms')"><span style="color:#facc15;">"</span>
                 
                 <span style="color:var(--grid-line); margin:0 8px;">|</span>
                 
@@ -655,6 +656,7 @@ table tr.clicked-row:hover td * {
                     <option value="E" selected>E</option><option value="W">W</option>
                 </select>
                 <input type="text" id="dmsLonMin" value="06" style="width:45px; text-align:center; font-size: 14px;" oninput="syncCoords('dms')"><span style="color:#facc15;">'</span>
+                <input type="text" id="dmsLonSec" value="02" style="width:45px; text-align:center; font-size: 14px;" oninput="syncCoords('dms')"><span style="color:#facc15;">"</span>
             </div>
         </div>
     </div>
@@ -2264,25 +2266,35 @@ function drawSIKundali(){
         if(source === 'dec') {
             let lat = parseFloat(document.getElementById('onlineLat').value) || 0;
             let lon = parseFloat(document.getElementById('onlineLon').value) || 0;
+            
             document.getElementById('dmsLatDir').value = lat >= 0 ? 'N' : 'S';
             lat = Math.abs(lat);
             document.getElementById('dmsLatDeg').value = Math.floor(lat);
-            document.getElementById('dmsLatMin').value = Math.floor((lat - Math.floor(lat)) * 60).toString().padStart(2, '0');
+            let latMinFloat = (lat - Math.floor(lat)) * 60;
+            document.getElementById('dmsLatMin').value = Math.floor(latMinFloat).toString().padStart(2, '0');
+            document.getElementById('dmsLatSec').value = Math.round((latMinFloat - Math.floor(latMinFloat)) * 60).toString().padStart(2, '0');
+            
             document.getElementById('dmsLonDir').value = lon >= 0 ? 'E' : 'W';
             lon = Math.abs(lon);
             document.getElementById('dmsLonDeg').value = Math.floor(lon);
-            document.getElementById('dmsLonMin').value = Math.floor((lon - Math.floor(lon)) * 60).toString().padStart(2, '0');
+            let lonMinFloat = (lon - Math.floor(lon)) * 60;
+            document.getElementById('dmsLonMin').value = Math.floor(lonMinFloat).toString().padStart(2, '0');
+            document.getElementById('dmsLonSec').value = Math.round((lonMinFloat - Math.floor(lonMinFloat)) * 60).toString().padStart(2, '0');
         } else if (source === 'dms') {
             let latDeg = parseFloat(document.getElementById('dmsLatDeg').value) || 0;
             let latMin = parseFloat(document.getElementById('dmsLatMin').value) || 0;
+            let latSec = parseFloat(document.getElementById('dmsLatSec').value) || 0;
             let latDir = document.getElementById('dmsLatDir').value;
-            let lat = latDeg + (latMin / 60);
+            let lat = latDeg + (latMin / 60) + (latSec / 3600);
             if (latDir === 'S') lat = -lat;
+            
             let lonDeg = parseFloat(document.getElementById('dmsLonDeg').value) || 0;
             let lonMin = parseFloat(document.getElementById('dmsLonMin').value) || 0;
+            let lonSec = parseFloat(document.getElementById('dmsLonSec').value) || 0;
             let lonDir = document.getElementById('dmsLonDir').value;
-            let lon = lonDeg + (lonMin / 60);
+            let lon = lonDeg + (lonMin / 60) + (lonSec / 3600);
             if (lonDir === 'W') lon = -lon;
+            
             document.getElementById('onlineLat').value = lat.toFixed(6);
             document.getElementById('onlineLon').value = lon.toFixed(6);
         }
@@ -2419,8 +2431,10 @@ function clearFetchData() {
         document.getElementById("onlineLon").value = "";
         document.getElementById("dmsLatDeg").value = "";
         document.getElementById("dmsLatMin").value = "";
+        document.getElementById("dmsLatSec").value = "";
         document.getElementById("dmsLonDeg").value = "";
         document.getElementById("dmsLonMin").value = "";
+        document.getElementById("dmsLonSec").value = "";
     }
 
     let wakeInterval = null;
@@ -9123,8 +9137,6 @@ document.addEventListener('click', function(e) {
 
 
 
-
-
 <script>
 /* ======================================================
     NAKSHATRA NADI DBA MIXER (6-LEVEL) - VERTICAL & DYNAMIC
@@ -9175,8 +9187,15 @@ if (typeof window.__nadiDbaUseCuspal === 'undefined') window.__nadiDbaUseCuspal 
 if (typeof window.__nadiDbaRemOcc1 === 'undefined') window.__nadiDbaRemOcc1 = false;
 if (typeof window.__nadiDbaRemOcc2 === 'undefined') window.__nadiDbaRemOcc2 = true; // Checked by default
 if (typeof window.__nadiDbaShowAntara === 'undefined') window.__nadiDbaShowAntara = false; // Default OFF
-if (typeof window.__nadiDbaRaKeAspectConj === 'undefined') window.__nadiDbaRaKeAspectConj = true; // NEW CHECKBOX
-if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = false; // NEW SHOW PLACED
+if (typeof window.__nadiDbaRaKeAspectConj === 'undefined') window.__nadiDbaRaKeAspectConj = true; 
+if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = false; 
+
+// Hide/Show Options for Sub and Sub-Sub Levels
+if (typeof window.__nadiDbaHideStarSub === 'undefined') window.__nadiDbaHideStarSub = false; // Default OFF (shown)
+if (typeof window.__nadiDbaHideSubSub === 'undefined') window.__nadiDbaHideSubSub = true; // Default ON (hidden)
+
+// NEW: Untenented Logic State
+if (typeof window.__nadiDbaUntenented === 'undefined') window.__nadiDbaUntenented = false; // Default OFF
 
 function buildNadiDbaMixer() {
     let wrap = document.getElementById("nadiDbaMixerWrap");
@@ -9231,7 +9250,7 @@ function buildNadiDbaMixer() {
 
     // --- HIGHLIGHT CONTROLS ---
     let hlWrap = document.createElement("div");
-    hlWrap.style = "display:flex; flex-direction:column; gap:15px; mb:20px; background:linear-gradient(90deg, #021b16, #010a08); padding:15px; border:1px solid #10b981; border-radius:8px;";
+    hlWrap.style = "display:flex; flex-direction:column; gap:15px; margin-bottom:20px; background:linear-gradient(90deg, #021b16, #010a08); padding:15px; border:1px solid #10b981; border-radius:8px;";
 
     let templateRow = document.createElement("div");
     templateRow.style = "display:flex; justify-content:center; gap:25px; align-items:center; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px dashed #064e3b; margin-bottom:5px;";
@@ -9368,7 +9387,7 @@ function buildNadiDbaMixer() {
 
     // --- GLOBAL OPTIONS ---
     let optionsWrap = document.createElement("div");
-    optionsWrap.style = "display:flex; justify-content:center; gap:25px; margin-bottom:25px; flex-wrap:wrap;";
+    optionsWrap.style = "display:flex; justify-content:center; gap:15px; margin-bottom:25px; flex-wrap:wrap;";
 
     function createOption(labelStr, varName) {
         let lbl = document.createElement("label");
@@ -9383,7 +9402,7 @@ function buildNadiDbaMixer() {
     }
 
     optionsWrap.appendChild(createOption("Include Conjunct Cuspal (7 Planets)", "__nadiDbaUseCuspal"));
-    optionsWrap.appendChild(createOption("Ra/Ke Special Rule (Add Dispositor)", "__nadiDbaRaKeSpecial"));
+    optionsWrap.appendChild(createOption("Ra/Ke Special Rule", "__nadiDbaRaKeSpecial"));
 
     let rem1Lbl = document.createElement("label");
     rem1Lbl.style = "font-weight:900; color:#f59e0b; cursor:pointer; font-size:15px; border:1px solid #f59e0b; padding:4px 10px; border-radius:4px; background:#010a08;";
@@ -9396,7 +9415,7 @@ function buildNadiDbaMixer() {
         buildNadiDbaMixer(); 
     };
     rem1Lbl.appendChild(rem1Chk);
-    rem1Lbl.appendChild(document.createTextNode(" Rem Occ {1 planet}"));
+    rem1Lbl.appendChild(document.createTextNode(" Rem Occ {1}"));
     optionsWrap.appendChild(rem1Lbl);
 
     let rem2Lbl = document.createElement("label");
@@ -9410,11 +9429,11 @@ function buildNadiDbaMixer() {
         buildNadiDbaMixer(); 
     };
     rem2Lbl.appendChild(rem2Chk);
-    rem2Lbl.appendChild(document.createTextNode(" Rem Occ {2 or more planet}"));
+    rem2Lbl.appendChild(document.createTextNode(" Rem Occ {2+}"));
     optionsWrap.appendChild(rem2Lbl);
 
     let showAntaraLbl = document.createElement("label");
-    showAntaraLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:15px; border:1px solid #10b981; padding:4px 10px; border-radius:4px; background:#010a08; margin-left:10px;";
+    showAntaraLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:15px; border:1px solid #10b981; padding:4px 10px; border-radius:4px; background:#010a08;";
     let showAntaraChk = document.createElement("input");
     showAntaraChk.type = "checkbox";
     showAntaraChk.checked = window.__nadiDbaShowAntara;
@@ -9426,9 +9445,8 @@ function buildNadiDbaMixer() {
     showAntaraLbl.appendChild(document.createTextNode(" Show Antara"));
     optionsWrap.appendChild(showAntaraLbl);
 
-    // --- RAHU / KETU ASPECT & CONJUNCT CHECKBOX ---
     let rakeAspConjLbl = document.createElement("label");
-    rakeAspConjLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:15px; border:1px solid #10b981; padding:4px 10px; border-radius:4px; background:#010a08; margin-left:10px;";
+    rakeAspConjLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:15px; border:1px solid #10b981; padding:4px 10px; border-radius:4px; background:#010a08;";
     let rakeAspConjChk = document.createElement("input");
     rakeAspConjChk.type = "checkbox";
     rakeAspConjChk.checked = window.__nadiDbaRaKeAspectConj;
@@ -9437,12 +9455,12 @@ function buildNadiDbaMixer() {
         buildNadiDbaMixer(); 
     };
     rakeAspConjLbl.appendChild(rakeAspConjChk);
-    rakeAspConjLbl.appendChild(document.createTextNode(" Rahu / Ketu - Aspect & Conjuct"));
+    rakeAspConjLbl.appendChild(document.createTextNode(" Rahu / Ketu - Aspect & Conj"));
     optionsWrap.appendChild(rakeAspConjLbl);
 
-    // --- SHOW PLACED CHECKBOX (ROUNDED OUTLINE) ---
+    // --- SHOW PLACED CHECKBOX ---
     let showPlacedLbl = document.createElement("label");
-    showPlacedLbl.style = "font-weight:900; color:#38bdf8; cursor:pointer; font-size:15px; border:1px solid #38bdf8; padding:4px 10px; border-radius:4px; background:#010a08; margin-left:10px;";
+    showPlacedLbl.style = "font-weight:900; color:#38bdf8; cursor:pointer; font-size:15px; border:1px solid #38bdf8; padding:4px 10px; border-radius:4px; background:#010a08;";
     let showPlacedChk = document.createElement("input");
     showPlacedChk.type = "checkbox";
     showPlacedChk.checked = window.__nadiDbaShowPlaced;
@@ -9453,6 +9471,48 @@ function buildNadiDbaMixer() {
     showPlacedLbl.appendChild(showPlacedChk);
     showPlacedLbl.appendChild(document.createTextNode(" Show Placed"));
     optionsWrap.appendChild(showPlacedLbl);
+
+    // --- HIDE ⭐ SUBLORD CHECKBOX ---
+    let hideStarSubLbl = document.createElement("label");
+    hideStarSubLbl.style = "font-weight:900; color:#ef4444; cursor:pointer; font-size:15px; border:1px solid #ef4444; padding:4px 10px; border-radius:4px; background:#010a08;";
+    let hideStarSubChk = document.createElement("input");
+    hideStarSubChk.type = "checkbox";
+    hideStarSubChk.checked = window.__nadiDbaHideStarSub;
+    hideStarSubChk.onchange = (e) => { 
+        window.__nadiDbaHideStarSub = e.target.checked; 
+        buildNadiDbaMixer(); 
+    };
+    hideStarSubLbl.appendChild(hideStarSubChk);
+    hideStarSubLbl.appendChild(document.createTextNode(" Hide ⭐ Sublord"));
+    optionsWrap.appendChild(hideStarSubLbl);
+
+    // --- HIDE SUB-SUB CHECKBOX ---
+    let hideSubSubLbl = document.createElement("label");
+    hideSubSubLbl.style = "font-weight:900; color:#a855f7; cursor:pointer; font-size:15px; border:1px solid #a855f7; padding:4px 10px; border-radius:4px; background:#010a08;";
+    let hideSubSubChk = document.createElement("input");
+    hideSubSubChk.type = "checkbox";
+    hideSubSubChk.checked = window.__nadiDbaHideSubSub;
+    hideSubSubChk.onchange = (e) => { 
+        window.__nadiDbaHideSubSub = e.target.checked; 
+        buildNadiDbaMixer(); 
+    };
+    hideSubSubLbl.appendChild(hideSubSubChk);
+    hideSubSubLbl.appendChild(document.createTextNode(" Hide Sub-Sub"));
+    optionsWrap.appendChild(hideSubSubLbl);
+
+    // --- UNTENENTED CHECKBOX ---
+    let untenentedLbl = document.createElement("label");
+    untenentedLbl.style = "font-weight:900; color:#facc15; cursor:pointer; font-size:15px; border:1px solid #facc15; padding:4px 10px; border-radius:4px; background:#010a08;";
+    let untenentedChk = document.createElement("input");
+    untenentedChk.type = "checkbox";
+    untenentedChk.checked = window.__nadiDbaUntenented;
+    untenentedChk.onchange = (e) => { 
+        window.__nadiDbaUntenented = e.target.checked; 
+        buildNadiDbaMixer(); 
+    };
+    untenentedLbl.appendChild(untenentedChk);
+    untenentedLbl.appendChild(document.createTextNode(" Untenented"));
+    optionsWrap.appendChild(untenentedLbl);
 
     innerWrap.appendChild(optionsWrap);
 
@@ -9574,7 +9634,6 @@ function buildNadiDbaMixer() {
             let n = parseInt(part, 10);
             if(isNaN(n)) return part;
 
-            // NEW SHOW PLACED OUTLINE (Dotted, rounded pill boundary indicator)
             if (window.__nadiDbaShowPlaced && isPlacedNum) {
                 return `<span style="border: 2px dotted #38bdf8; padding: 1px 6px; border-radius: 12px; font-weight: bold; display: inline-block; margin: 1px;">${n}</span>`;
             }
@@ -9624,226 +9683,202 @@ function buildNadiDbaMixer() {
         }
 
         if (h) nums.push(parseInt(h));
-
-		// Remove invalid values only
-		nums = nums.filter(x => !isNaN(x));
-
-		// Keep duplicate placement/lordship numbers
-		nums.sort((a, b) => a - b);
-
-		return nums;
+        nums = nums.filter(x => !isNaN(x));
+        nums.sort((a, b) => a - b);
+        return nums;
     }
 
-
-
-
-
-
-
-
-
-
-
-function buildNadiCellHTML(planet, removeOccMode, hideUnselected) {
-    if (!planet) return "-";
-    
-    function makeLine(label, ent, colorStr) {
-        if(!ent) return `<div style="display:grid; grid-template-columns: 85px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: -</span></div>`;
-        let pLabel = getPlanetLabel(ent);
+    function buildNadiCellHTML(planet, removeOccMode, hideUnselected) {
+        if (!planet) return "-";
         
-        
-		
-		
-		// --- RAHU / KETU NON-MIXED PLUS (+) FORMATTING ---
-        if (window.__nadiDbaRaKeAspectConj && (ent === "Rahu" || ent === "Ketu")) {
-            let combinedParts = [];
-            
-            // 1. Placement (Own House ONLY)
-            let h = getPlanetHouse(ent);
-            if (h) {
-                combinedParts.push(formatNadiHighlightNums(String(h), hideUnselected, ent, true));
-            }
+        function makeLine(label, ent, colorStr, forceHideNums = false) {
+            if(!ent) return `<div style="display:grid; grid-template-columns: 85px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: -</span></div>`;
+            let pLabel = getPlanetLabel(ent);
+            let numStr = "-";
 
-            // Keep track of all numbers already used by the Placed House and Dispositor to prevent downstream duplicates
-            let usedDispositorNumbers = new Set();
-
-            
-			
-			
-			
-			// 2. Dispositor Lords
-            if (window.__nadiDbaRaKeSpecial) {
-                let sign = getPlanetSign(ent);
-                let disp = SIGN_LORDS[sign];
-                if (disp) {
-                    let dispNums = [];
-                    let dh = getPlanetHouse(disp);
-                    let dHouseNum = null; // Store dispositor placed house
-                    if (dh) {
-                        dHouseNum = parseInt(dh, 10);
-                        dispNums.push(dHouseNum);
-                        usedDispositorNumbers.add(dHouseNum);
+            if (!forceHideNums) {
+                if (window.__nadiDbaRaKeAspectConj && (ent === "Rahu" || ent === "Ketu")) {
+                    let combinedParts = [];
+                    let h = getPlanetHouse(ent);
+                    if (h) {
+                        combinedParts.push(formatNadiHighlightNums(String(h), hideUnselected, ent, true));
                     }
+
+                    let usedDispositorNumbers = new Set();
                     
-                    let dl = getLordsOf(disp);
-                    dl = nadiFilterOccupied(dl, removeOccMode);
-                    if (dl && dl !== "-") {
-                        dl.split(",").forEach(x => {
-                            let val = parseInt(x.trim(), 10);
-                            dispNums.push(val);
-                            usedDispositorNumbers.add(val);
+                    if (window.__nadiDbaRaKeSpecial) {
+                        let sign = getPlanetSign(ent);
+                        let disp = SIGN_LORDS[sign];
+                        if (disp) {
+                            let dispNums = [];
+                            let dh = getPlanetHouse(disp);
+                            let dHouseNum = null; 
+                            if (dh) {
+                                dHouseNum = parseInt(dh, 10);
+                                dispNums.push(dHouseNum);
+                                usedDispositorNumbers.add(dHouseNum);
+                            }
+                            
+                            let dl = getLordsOf(disp);
+                            dl = nadiFilterOccupied(dl, removeOccMode);
+                            if (dl && dl !== "-") {
+                                dl.split(",").forEach(x => {
+                                    let val = parseInt(x.trim(), 10);
+                                    dispNums.push(val);
+                                    usedDispositorNumbers.add(val);
+                                });
+                            }
+                            
+                            if (document.getElementById("useConjCusps")?.checked) {
+                                let dCusps = getCuspalConjunct(disp);
+                                if(dCusps && dCusps !== "-") dCusps.split(",").forEach(x => {
+                                    let val = parseInt(x, 10);
+                                    dispNums.push(val);
+                                    usedDispositorNumbers.add(val);
+                                });
+                            }
+                            
+                            dispNums = [...new Set(dispNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
+                            if (dispNums.length > 0) {
+                                let dispStr = dispNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === dHouseNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
+                                combinedParts.push(dispStr);
+                            }
+                        }
+                    }
+
+                    let txtAsp = getAspectedBy(ent); 
+                    if (txtAsp && txtAsp !== "-") {
+                        let matches = txtAsp.match(/([a-zA-Z]+)\(([\d,]+)\)/g) || [];
+                        matches.forEach(m => {
+                            let parts = m.match(/\(([\d,]+)\)/);
+                            if (parts && parts[1]) {
+                                let rawStrNums = parts[1].split(",");
+                                let placedNum = parseInt(rawStrNums[0], 10); 
+                                
+                                let filteredNums = rawStrNums.map(Number).filter(n => !usedDispositorNumbers.has(n));
+                                filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
+                                
+                                if (filteredNums.length > 0) {
+                                    let formatted = filteredNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
+                                    combinedParts.push(formatted);
+                                }
+                            }
                         });
                     }
-                    
-                    if (document.getElementById("useConjCusps")?.checked) {
-                        let dCusps = getCuspalConjunct(disp);
-                        if(dCusps && dCusps !== "-") dCusps.split(",").forEach(x => {
-                            let val = parseInt(x, 10);
-                            dispNums.push(val);
-                            usedDispositorNumbers.add(val);
+
+                    let txtConj = getConjunctPlanets(ent);
+                    if (txtConj && txtConj !== "-") {
+                        let matches = txtConj.match(/([a-zA-Z]+)\(([\d,]+)\)/g) || [];
+                        matches.forEach(m => {
+                            let parts = m.match(/\(([\d,]+)\)/);
+                            if (parts && parts[1]) {
+                                let rawStrNums = parts[1].split(",");
+                                let placedNum = parseInt(rawStrNums[0], 10); 
+                                
+                                let filteredNums = rawStrNums.map(Number).filter(n => !usedDispositorNumbers.has(n));
+                                filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
+                                
+                                if (filteredNums.length > 0) {
+                                    let formatted = filteredNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
+                                    combinedParts.push(formatted);
+                                }
+                            }
                         });
                     }
-                    
-                    dispNums = [...new Set(dispNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
-                    if (dispNums.length > 0) {
-                        // FIXED: Check if the number matches the Dispositor's Placed House
-                        let dispStr = dispNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === dHouseNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
-                        combinedParts.push(dispStr);
-                    }
+
+                    combinedParts = combinedParts.filter(part => part && part !== "-");
+                    numStr = combinedParts.length > 0 ? combinedParts.join(" <span style='color:#ecfdf5; font-weight:bold; margin:0 4px;'>+</span> ") : "-";
+                } else {
+                    let numsArray = getNadiNumsArray(ent, removeOccMode);
+                    let rawPl = getPlanetHouse(ent);
+                    let plVal = rawPl ? parseInt(rawPl, 10) : NaN;
+                    let firstPlacedIndex = numsArray.indexOf(plVal);
+
+                    let parts = numsArray.map((n, idx) => {
+                        let isP = (idx === firstPlacedIndex);
+                        return formatNadiHighlightNums(String(n), hideUnselected, ent, isP);
+                    }).filter(p => p !== "");
+
+                    numStr = parts.length > 0 ? parts.join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>") : "-";
                 }
             }
-
-            // 3. Aspected By 
-            let txtAsp = getAspectedBy(ent); 
-            if (txtAsp && txtAsp !== "-") {
-                let matches = txtAsp.match(/([a-zA-Z]+)\(([\d,]+)\)/g) || [];
-                matches.forEach(m => {
-                    let parts = m.match(/\(([\d,]+)\)/);
-                    if (parts && parts[1]) {
-                        let rawStrNums = parts[1].split(",");
-                        let placedNum = parseInt(rawStrNums[0], 10); // The first number is ALWAYS the Placed House
-                        
-                        let filteredNums = rawStrNums.map(Number).filter(n => !usedDispositorNumbers.has(n));
-                        filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
-                        
-                        if (filteredNums.length > 0) {
-                            // FIXED: Map and check against placedNum
-                            let formatted = filteredNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
-                            combinedParts.push(formatted);
-                        }
-                    }
-                });
-            }
-
-            // 4. Conjunct Planets 
-            let txtConj = getConjunctPlanets(ent);
-            if (txtConj && txtConj !== "-") {
-                let matches = txtConj.match(/([a-zA-Z]+)\(([\d,]+)\)/g) || [];
-                matches.forEach(m => {
-                    let parts = m.match(/\(([\d,]+)\)/);
-                    if (parts && parts[1]) {
-                        let rawStrNums = parts[1].split(",");
-                        let placedNum = parseInt(rawStrNums[0], 10); // The first number is ALWAYS the Placed House
-                        
-                        let filteredNums = rawStrNums.map(Number).filter(n => !usedDispositorNumbers.has(n));
-                        filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
-                        
-                        if (filteredNums.length > 0) {
-                            // FIXED: Map and check against placedNum
-                            let formatted = filteredNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
-                            combinedParts.push(formatted);
-                        }
-                    }
-                });
-            }
-
-            // Filter out any trailing empty '+' blocks if everything was absorbed by the dispositor
-            combinedParts = combinedParts.filter(part => part && part !== "-");
-
-            let numStr = combinedParts.length > 0 
-                ? combinedParts.join(" <span style='color:#ecfdf5; font-weight:bold; margin:0 4px;'>+</span> ") 
-                : "-";
-                
+            
             return `<div style="display:grid; grid-template-columns: 85px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: ${pLabel} - ${numStr}</span></div>`;
         }
 
-        // --- STANDARD 7 PLANET FORMAT ---
-        let numsArray = getNadiNumsArray(ent, removeOccMode);
-        let rawPl = getPlanetHouse(ent);
-        let plVal = rawPl ? parseInt(rawPl, 10) : NaN;
+        let sl = getStarLord(planet);
+        let sub = getSubLord(planet);
+        let starOfSub = sub ? getStarLord(sub) : "";
+        let ss = getSubSubLord(planet);
+        let starOfSs = ss ? getStarLord(ss) : "";
 
-        // Circle ONLY the placement occurrence (the first matching one)
-		let firstPlacedIndex = numsArray.indexOf(plVal);
+        // --- UNTENENTED LOGIC CHECKS ---
+        let planetHasDollar = planet ? getPlanetLabel(planet).includes("$") : false;
+        let subHasDollar = sub ? getPlanetLabel(sub).includes("$") : false;
+        let ssHasDollar = ss ? getPlanetLabel(ss).includes("$") : false;
 
-		let parts = numsArray.map((n, idx) => {
-			let isP = (idx === firstPlacedIndex);
-			return formatNadiHighlightNums(String(n), hideUnselected, ent, isP);
-		}).filter(p => p !== "");
+        // Never hide the main planet/sub/sub-sub numbers based on untenanted status
+        let hidePlanetNums = false; 
+        // Only hide the Starlord's numbers if the main planet is untenanted ($)
+        let hideSlNums = window.__nadiDbaUntenented && planetHasDollar;
 
-        let numStr = parts.length > 0 ? parts.join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>") : "-";
-        return `<div style="display:grid; grid-template-columns: 85px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: ${pLabel} - ${numStr}</span></div>`;
+        let hideSubNums = false; 
+        let hideStarSubNums = window.__nadiDbaUntenented && subHasDollar;
+
+        let hideSsNums = false; 
+        let hideStarSsNums = window.__nadiDbaUntenented && ssHasDollar;
+
+        let c1 = "#facc15"; 
+        let c2 = "#ef4444"; 
+        let c3 = "#a855f7"; 
+        
+        const sepHTML = `<div style="border-bottom:1px solid #475569; margin:6px 0;"></div>`;
+        
+        let starSubHTML = !window.__nadiDbaHideStarSub ? makeLine("⭐ Sublord", starOfSub, c2, hideStarSubNums) : "";
+        
+        let subSubSectionHTML = "";
+        if (!window.__nadiDbaHideSubSub) {
+            subSubSectionHTML = `
+                ${sepHTML}
+                ${makeLine("Sub-Sub", ss, c3, hideSsNums)}
+                ${makeLine("⭐ Sub-Sub", starOfSs, c3, hideStarSsNums)}
+            `;
+        }
+
+        return `
+            <div style="text-align:left; font-family:Consolas, monospace; font-size:14px; line-height:1.5; display:inline-block; width:100%;">
+                ${makeLine("Planet", planet, c1, hidePlanetNums)}
+                ${makeLine("Starlord", sl, c1, hideSlNums)}
+                ${sepHTML}
+                ${makeLine("Sublord", sub, c2, hideSubNums)}
+                ${starSubHTML}
+                ${subSubSectionHTML}
+            </div>
+        `;
     }
 
-    let sl = getStarLord(planet);
-    let sub = getSubLord(planet);
-    let starOfSub = sub ? getStarLord(sub) : "";
-    let ss = getSubSubLord(planet);
-    let starOfSs = ss ? getStarLord(ss) : "";
-
-    let c1 = "#facc15"; 
-    let c2 = "#ef4444"; 
-    let c3 = "#a855f7"; 
-    
-    const sepHTML = `<div style="border-bottom:1px solid #475569; margin:6px 0;"></div>`;
-
-    return `
-        <div style="text-align:left; font-family:Consolas, monospace; font-size:14px; line-height:1.5; display:inline-block; width:100%;">
-            ${makeLine("Planet", planet, c1)}
-            ${makeLine("Starlord", sl, c1)}
-            
-            ${sepHTML}
-            
-            ${makeLine("Sublord", sub, c2)}
-            ${makeLine("⭐ Sublord", starOfSub, c2)}
-            
-            ${sepHTML}
-            
-            ${makeLine("Sub-Sub", ss, c3)}
-            ${makeLine("⭐ Sub-Sub", starOfSs, c3)}
-        </div>
-    `;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // --- BUILD DYNAMIC TABLE ---
+    // --- BUILD DYNAMIC TABLE (ISLANDS) ---
     const table = document.createElement("table");
     table.style.width = "100%";
     table.style.borderCollapse = "collapse";
-    table.style.background = "#010a08";
-    table.style.border = "3px solid #10b981"; // Thick Outline Border
+    table.style.background = "transparent";
+    table.style.border = "none"; 
     
     let trHead = document.createElement("tr");
     trHead.style.background = "linear-gradient(90deg, #064e3b 0%, #1e3a8a 50%, #4a044e 100%)";
     let outlineCSS = "-webkit-text-stroke: 1px #000; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;";
     
     trHead.innerHTML = `
-        <th style="border:1px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#38bdf8; ${outlineCSS}">Dasha</th>
-        <th style="border:1px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#f472b6; ${outlineCSS}">Bukthi</th>
-        <th style="border:1px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#a855f7; ${outlineCSS}">Antara</th>
+        <th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#38bdf8; ${outlineCSS}">Dasha</th>
+        <th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#f472b6; ${outlineCSS}">Bukthi</th>
+        <th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#a855f7; ${outlineCSS}">Antara</th>
     `;
     table.appendChild(trHead);
+
+    // Initial gap between header and first row island
+    let initialGap = document.createElement("tr");
+    initialGap.innerHTML = `<td colspan="3" style="height:30px; border:none; background:transparent;"></td>`;
+    table.appendChild(initialGap);
     
     let dPlanet = window.__nadiDbaDasha;
     let activeOccMode = window.__nadiDbaRemOcc1 ? 1 : (window.__nadiDbaRemOcc2 ? 2 : 0);
@@ -9854,32 +9889,46 @@ function buildNadiCellHTML(planet, removeOccMode, hideUnselected) {
         let bukthiCellHTML = buildNadiCellHTML(bPlanet, activeOccMode, window.__nadiDbaHideUnBA);
         let aIterOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(bPlanet)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(bPlanet))];
         
-        aIterOrder.forEach(aPlanet => {
+        aIterOrder.forEach((aPlanet, idx) => {
             let antaraCellHTML = buildNadiCellHTML(aPlanet, activeOccMode, window.__nadiDbaHideUnBA);
             let tr = document.createElement("tr");
             tr.style.backgroundColor = "#010a08"; 
             tr.innerHTML = `
-                <td style="border:1px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${dashaCellHTML}</td>
-                <td style="border:1px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${bukthiCellHTML}</td>
-                <td style="border:1px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${antaraCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${dashaCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${bukthiCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${antaraCellHTML}</td>
             `;
             table.appendChild(tr);
+            
+            // Add spacer to create distinct islands
+            if (idx < aIterOrder.length - 1) {
+                let gap = document.createElement("tr");
+                gap.innerHTML = `<td colspan="3" style="height:35px; border:none; background:transparent;"></td>`;
+                table.appendChild(gap);
+            }
         });
     } else {
         let aPlanet = window.__nadiDbaAntara;
         let antaraCellHTML = window.__nadiDbaShowAntara ? buildNadiCellHTML(aPlanet, activeOccMode, window.__nadiDbaHideUnBA) : "";
         let bIterOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(dPlanet)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(dPlanet))];
 
-        bIterOrder.forEach(bPlanet => {
+        bIterOrder.forEach((bPlanet, idx) => {
             let bukthiCellHTML = buildNadiCellHTML(bPlanet, activeOccMode, window.__nadiDbaHideUnBA);
             let tr = document.createElement("tr");
             tr.style.backgroundColor = "#010a08"; 
             tr.innerHTML = `
-                <td style="border:1px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${dashaCellHTML}</td>
-                <td style="border:1px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${bukthiCellHTML}</td>
-                <td style="border:1px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${antaraCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${dashaCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${bukthiCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${antaraCellHTML}</td>
             `;
             table.appendChild(tr);
+
+            // Add spacer to create distinct islands
+            if (idx < bIterOrder.length - 1) {
+                let gap = document.createElement("tr");
+                gap.innerHTML = `<td colspan="3" style="height:35px; border:none; background:transparent;"></td>`;
+                table.appendChild(gap);
+            }
         });
     }
 
@@ -9898,8 +9947,6 @@ if (typeof window.__oldBuildVimForNadi === "undefined") {
 // Initial render attempt
 setTimeout(buildNadiDbaMixer, 200);
 </script>
-
-
 
 
 
