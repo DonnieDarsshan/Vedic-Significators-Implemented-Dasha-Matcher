@@ -622,17 +622,79 @@ table tr.clicked-row:hover td * {
             </div>
         </div>
         
-        <div class="form-group">
-            <span style="font-size: 14px;">&#x1F4CD; Standard Places</span>
-            <select id="locationPreset" onchange="applyPresetLocation()" style="width: 190px; font-size: 14px;">
-                <option value="manual">Manual GPS (Default)</option>
-                <option value="13.3190737,77.1326306">Tumakuru</option>
-                <option value="12.918880,77.634986">Bengaluru</option>
-                <option value="13.315527,76.942059">Gubbi</option>
-                <option value="12.304776,76.655108">Mysore</option>
-            </select>
+        <div style="display: flex; gap: 30px; align-items: flex-end; flex: 1;">
+            <div class="form-group">
+                <span style="font-size: 14px;">&#x1F4CD; Standard Places</span>
+                <select id="locationPreset" onchange="applyPresetLocation()" style="width: 190px; font-size: 14px;">
+                    <option value="manual">Manual GPS (Default)</option>
+                    <option value="13.3190737,77.1326306">Tumakuru</option>
+                    <option value="12.918880,77.634986">Bengaluru</option>
+                    <option value="13.315527,76.942059">Gubbi</option>
+                    <option value="12.304776,76.655108">Mysore</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="padding-bottom: 1px;">
+                <div id="ageOutlineBox" style="border: 1px solid var(--grid-line); padding: 5px 15px; border-radius: 4px; background: #0c0505; color: #facc15; font-size: 16px; font-weight: 800; white-space: nowrap; height: 32px; display: flex; align-items: center; letter-spacing: 0.5px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
+                    Age : &nbsp;-- years&nbsp; : -- months : -- days
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        function calculateAgeLive() {
+            const dInput = document.getElementById("onDay");
+            const mInput = document.getElementById("onMonth");
+            const yInput = document.getElementById("onYear");
+            const display = document.getElementById("ageOutlineBox");
+            
+            if (!dInput || !mInput || !yInput || !display) return;
+
+            const d = parseInt(dInput.value, 10);
+            const m = parseInt(mInput.value, 10);
+            const y = parseInt(yInput.value, 10);
+            
+            if (isNaN(d) || isNaN(m) || isNaN(y) || y < 1000) {
+                display.innerHTML = "Age : &nbsp;-- years&nbsp; : -- months : -- days";
+                return;
+            }
+
+            const dob = new Date(y, m - 1, d);
+            const today = new Date(); 
+            
+            if (dob > today) {
+                display.innerHTML = "Age : &nbsp;Future Date";
+                return;
+            }
+
+            let years = today.getFullYear() - dob.getFullYear();
+            let months = today.getMonth() - dob.getMonth();
+            let days = today.getDate() - dob.getDate();
+
+            if (days < 0) {
+                months--;
+                const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                days += prevMonth.getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            
+            display.innerHTML = `Age : &nbsp;${years} years&nbsp; : ${months} months : ${days} days`;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const box = document.getElementById("onlineFetchBox");
+            if (box) {
+                box.addEventListener("input", calculateAgeLive);
+                box.addEventListener("keyup", calculateAgeLive);
+                box.addEventListener("change", calculateAgeLive);
+            }
+            setInterval(calculateAgeLive, 400);
+        });
+    </script>
     
     <div class="fetch-row" style="margin-top: 10px;">
         <div class="form-group" style="width: 100%;">
@@ -2699,7 +2761,29 @@ function clearFetchData() {
 
     function saveCloudProfile() {
         const name = document.getElementById("onName").value.trim();
-        if (name.length < 2) return;
+        if (name.length < 2) {
+            alert("Please enter a Profile Name before saving.");
+            return;
+        }
+
+        // 1. Ensure chart data exists before saving
+        if (!window.__lastSwissData) {
+            alert("No chart data available to save. Please fetch online or load a chart first.");
+            return;
+        }
+
+        // 2. Create a clean, strict deep clone to prevent "Invalid JSON" corruption on save
+        let chartCopy = JSON.parse(JSON.stringify(window.__lastSwissData));
+
+        // 3. Force restriction to strictly 3 Ayanamshas to keep file lean and offline-ready
+        if (chartCopy.ayanamshas) {
+            const allowedAyanamshas = ["Lahiri", "KP New", "Raman"];
+            Object.keys(chartCopy.ayanamshas).forEach(key => {
+                if (!allowedAyanamshas.includes(key)) {
+                    delete chartCopy.ayanamshas[key];
+                }
+            });
+        }
 
         const profileData = {
             type: "CloudHoroscopeProfile",
@@ -2713,17 +2797,19 @@ function clearFetchData() {
                 h: document.getElementById("onHour").value,
                 min: document.getElementById("onMin").value,
                 sec: document.getElementById("onSec").value
-             },
+            },
             coords: {
                 lat: document.getElementById("onlineLat").value,
                 lon: document.getElementById("onlineLon").value
-            }
+            },
+            // Embed the entire cleaned raw object directly
+            chartData: chartCopy
         };
 
         const dataStr = JSON.stringify(profileData, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        const safeName = name.replace(/[^a-z0-9]/gi, '_').toUpperCase();
+        const safeName = name.replace(/[^a-z0-9]/gi, '_').toUpperCase() || "PROFILE";
         
         const a = document.createElement("a");
         a.href = url;
@@ -2734,136 +2820,163 @@ function clearFetchData() {
         URL.revokeObjectURL(url);
     }
 
-    function loadCloudProfile(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    
+	
+	
+	
+	
+	
+	
+	function loadCloudProfile(event) {
+    let file = event.target.files[0];
+    if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                if(typeof clearFetchData === "function") clearFetchData();
-                const data = JSON.parse(e.target.result);
-                if (data.type !== "CloudHoroscopeProfile") return;
+    let reader = new FileReader();
 
-                document.getElementById("onName").value = data.name || "";
-                if (data.date) {
-                    document.getElementById("onDay").value = data.date.d || "";
-                    document.getElementById("onMonth").value = data.date.m || "";
-                    document.getElementById("onYear").value = data.date.y || "";
-                }
-                if (data.time) {
-                    document.getElementById("onHour").value = data.time.h || "";
-                    document.getElementById("onMin").value = data.time.min || "";
-                    document.getElementById("onSec").value = data.time.sec || "00";
-                }
-                if (data.coords) {
-                    document.getElementById("onlineLat").value = data.coords.lat || "";
-                    document.getElementById("onlineLon").value = data.coords.lon || "";
-                    document.getElementById("locationPreset").value = "manual"; 
-                    syncCoords('dec');
-                }
+    reader.onload = function(e) {
+        try {
+            if (typeof clearFetchData === "function") clearFetchData();
+            
+            // Clean potential invisible BOM characters before parsing
+            let rawResult = e.target.result.trim();
+            let data = JSON.parse(rawResult);
 
-                setTimeout(() => { if (typeof fetchFromCloud === "function") fetchFromCloud(); }, 300);
-            } catch (error) {
-                console.error("Error parsing profile JSON:", error);
+            if (data.type !== "CloudHoroscopeProfile") return;
+
+            // Restore UI Inputs
+            if (data.name) document.getElementById('onName').value = data.name;
+            if (data.date) {
+                if (data.date.d) document.getElementById('onDay').value = data.date.d;
+                if (data.date.m) document.getElementById('onMonth').value = data.date.m;
+                if (data.date.y) document.getElementById('onYear').value = data.date.y;
             }
-        };
-        reader.readAsText(file);
-        event.target.value = '';
-    }
+            if (data.time) {
+                if (data.time.h) document.getElementById('onHour').value = data.time.h;
+                if (data.time.min) document.getElementById('onMin').value = data.time.min;
+                if (data.time.sec) document.getElementById('onSec').value = data.time.sec;
+            }
+            if (data.coords) {
+                if (data.coords.lat) document.getElementById('onlineLat').value = data.coords.lat;
+                if (data.coords.lon) document.getElementById('onlineLon').value = data.coords.lon;
+                document.getElementById("locationPreset").value = "manual";
+                if (typeof syncCoords === "function") syncCoords('dec');
+            }
 
+            // Recalculate Age instantly
+            if (typeof calculateNativeAge === "function") calculateNativeAge();
 
+            document.getElementById('loadProfileInput').value = "";
 
+            // --- 100% OFFLINE VS ONLINE LOGIC ---
+            if (data.chartData) {
+                // Assign embedded data to global chart variable instantly
+                window.__lastSwissData = data.chartData;
+                
+                // RECONSTRUCT MISSING META FOR DASHA CALCULATION
+                if (!window.__lastSwissData.meta) {
+                    window.__lastSwissData.meta = {};
+                }
+                if (!window.__lastSwissData.meta.datetime_utc) {
+                    let fY = data.date.y;
+                    let fM = String(data.date.m).padStart(2, '0');
+                    let fD = String(data.date.d).padStart(2, '0');
+                    let fHr = String(data.time.h).padStart(2, '0');
+                    let fMin = String(data.time.min).padStart(2, '0');
+                    let fSec = String(data.time.sec || "00").padStart(2, '0');
+                    window.__lastSwissData.meta.datetime_utc = `${fY}-${fM}-${fD}T${fHr}:${fMin}:${fSec}`;
+                }
 
+                // HARD RESET ALL OVERRIDES & STATE VARIABLES
+                window.__manualOrderOverride = null; 
+                window.__fourFoldState = true; 
+                window.__sixFoldExpanded = false; 
+                window.__nadiExpanded = false;    
+                VIM_CALIB_OFFSET_DAYS = 0; 
+                USE_KN_VIM = true; 
+                
+                window.__lastMixerSelection = null; 
+                window.__lastBukthiMixerSelection = null;
+                window.__mixerDashaPlanetState = true;
+                window.__mixerDashaStarlordState = true;
+                window.__mixerBukthiPlanetState = true;
+                window.__mixerBukthiStarlordState = true;
+                window.__mixerFourFoldState = true; 
+                window.__mixerAddDispositorState = false; 
+                window.__mixerRaKeForcedOff = true;
+                window.__mixerOccD = true;
+                window.__mixerOccB = true;
+                window.__mixerOccA = true;
+                window.__dbaMixerExpanded = false;
+                window.__dbaHideUnselected = false;
+                window.__dbaSelectedTemplate = "manual";
+                if (window.__dbaActiveHighlightNums) window.__dbaActiveHighlightNums.clear();
+                if (window.__dbaNegativeHighlightNums) window.__dbaNegativeHighlightNums.clear();
 
+                window.__dba3Dasha = null;
+                window.__dba3DashaP = true;
+                window.__dba3DashaS = true;
+                window.__dba3BukthiP = true;
+                window.__dba3BukthiS = true;
+                window.__dba3AntaraP = true;
+                window.__dba3AntaraS = true;
+                window.__dba3Expanded = false;
+                window.__dba3NormalView = true;
+                window.__dba3SplitView = false;
+                window.__dba3SplitView2 = false;
+                window.__dba3AddDispositor = false;
+                window.__dba3RemoveDuplicates = true;
+                window.__dba3OccD = true;
+                window.__dba3OccB = false;
+                window.__dba3OccA = true;
+                window.__dba3HideUnselected = false;
+                window.__dba3SelectedTemplate = "manual";
+                if (window.__dba3ActiveHighlightNums) window.__dba3ActiveHighlightNums.clear();
+                if (window.__dba3NegativeHighlightNums) window.__dba3NegativeHighlightNums.clear();
 
+                window.__nadiDbaExpanded = false;
+                window.__nadiDbaDasha = null;
+                window.__nadiDbaBukthi = null;
+                window.__nadiDbaAntara = null;
+                window.__nadiDbaActiveLevel = "antara";
+                window.__nadiDbaTemplate = "manual";
+                window.__nadiDbaHideUnD = false;
+                window.__nadiDbaHideUnBA = false;
+                window.__nadiDbaRaKeSpecial = false;
+                window.__nadiDbaUseCuspal = true;
+                window.__nadiDbaRemOcc1 = false;
+                window.__nadiDbaRemOcc2 = true;
+                if (window.__nadiDbaPosNums) window.__nadiDbaPosNums.clear();
+                if (window.__nadiDbaNegNums) window.__nadiDbaNegNums.clear();
 
+                // Redraw UI elements safely
+                let selOrder = document.getElementById("tableSortOrder");
+                let dbaOrder = typeof getDBAOrderFromMoon === "function" ? getDBAOrderFromMoon() : [];
+                if (selOrder && dbaOrder.length) {
+                    selOrder.innerHTML = "";
+                    dbaOrder.forEach(p => {
+                        let opt = document.createElement("option"); 
+                        opt.value = opt.text = p; 
+                        selOrder.appendChild(opt);
+                    });
+                }
+                
+                if (typeof drawSIKundali === "function") drawSIKundali();
+                if (typeof buildSignificatorTable === "function") buildSignificatorTable();
+                if (typeof buildLordshipDecider === "function") buildLordshipDecider();
+                if (typeof buildSixFoldTables === "function") buildSixFoldTables();
+                if (typeof buildNadiTables === "function") buildNadiTables();
+                if (typeof buildVimshottari === "function") buildVimshottari();
+                if (typeof setVimToday === "function") setVimToday();
+                if (typeof buildNadiDbaMixer === "function") buildNadiDbaMixer();
+                if (typeof window.buildSignificatorsSplitterTable === "function") window.buildSignificatorsSplitterTable();
+            }
 
-
-
-
-
-function loadCloudProfile(event){
-
-  let file = event.target.files[0];
-  if (!file) return;
-
-  let reader = new FileReader();
-
-  reader.onload = function(e){
-
-    try{
-
-      let data = JSON.parse(e.target.result);
-
-      // NAME
-      if(data.name){
-        document.getElementById('onName').value = data.name;
-      }
-
-      // DATE BLOCK
-      if(data.date){
-        if(data.date.d){
-          document.getElementById('onDay').value = data.date.d;
+        } catch (error) {
+            // Silently handles errors without popup warnings
         }
-
-        if(data.date.m){
-          document.getElementById('onMonth').value = data.date.m;
-        }
-
-        if(data.date.y){
-          document.getElementById('onYear').value = data.date.y;
-        }
-      }
-
-      // TIME BLOCK
-      if(data.time){
-
-        if(data.time.h){
-          document.getElementById('onHour').value = data.time.h;
-        }
-
-        if(data.time.min){
-          document.getElementById('onMin').value = data.time.min;
-        }
-
-        if(data.time.sec){
-          document.getElementById('onSec').value = data.time.sec;
-        }
-      }
-
-      // COORDS BLOCK
-      if(data.coords){
-
-        if(data.coords.lat){
-          document.getElementById('onlineLat').value = data.coords.lat;
-        }
-
-        if(data.coords.lon){
-          document.getElementById('onlineLon').value = data.coords.lon;
-        }
-      }
-
-      document.getElementById('loadProfileInput').value = "";
-
-      console.log("Cloud profile loaded successfully");
-      
-      // 🔥 NEW: Auto-trigger the cloud fetch immediately after loading!
-      setTimeout(fetchFromCloud, 300);
-
-    }catch(error){
-
-      console.error("Invalid JSON profile format", error);
-      alert("Invalid JSON profile format");
-
-    }
-
-  };
-
-  reader.readAsText(file);
+    };
+    reader.readAsText(file);
 }
-
-
 
 
 
@@ -4845,6 +4958,7 @@ function buildDashaBukthiMixer() {
 
   if (typeof window.__dbaActiveHighlightNums === 'undefined') window.__dbaActiveHighlightNums = new Set();
   if (typeof window.__dbaNegativeHighlightNums === 'undefined') window.__dbaNegativeHighlightNums = new Set();
+  if (typeof window.__dbaSupportHighlightNums === 'undefined') window.__dbaSupportHighlightNums = new Set(); // NEW SUPPORTIVE SET
   
   // New state definitions for selection system
   if (typeof window.__dbaHideUnselected === 'undefined') window.__dbaHideUnselected = false;
@@ -4955,111 +5069,78 @@ function buildDashaBukthiMixer() {
 
 
 
-const mixerTemplatesMap = {
-  manual: { name: "Manual Entry", pos: [], neg: [] },
-  even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], neg: [1, 3, 5, 7, 9, 11] },
-  
-  education: { name: "Education", pos: [4, 5, 9, 11], neg: [3, 6, 8, 12] },
-  career: { name: "Career & Business", pos: [2, 6, 10, 11], neg: [5, 8, 12] },
-  interview_pass_fail: { name: "Interview Pass Fail", pos: [3, 5, 11], neg: [3, 5, 12] },
-  job_change: { name: "Job Change", pos: [2, 6, 9], neg: [] },
-  transfer: { name: "Transfer", pos: [3, 10, 12], neg: [] },
-  suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], neg: [1, 5, 9, 12] },
-  earn_by_service_job: { name: "Earn by Service or Job", pos: [2, 6], neg: [5, 8, 12] },
-  self_employed: { name: "Self Employed", pos: [2, 6, 7, 10, 11], neg: [] },
-  self_employed_profit_loss: { name: "Self Employed Profit vs Loss", pos: [6, 7, 11], neg: [5, 7, 12] },
-  business_success_new_shop: { name: "Business Success in New Shop / Restaurant", pos: [3, 7, 10, 11], neg: [5, 7, 12] },
-  partnership_good_bad: { name: "Partnership Good Vs Bad", pos: [5, 7, 11], neg: [5, 7, 12] },
-  contract_good_bad: { name: "Contract Good Vs Bad Contract", pos: [7, 10, 11], neg: [1, 7, 8] },
 
-  marriage: { name: "Marriage", pos: [2, 7, 11], neg: [1, 4, 6, 8, 10, 12] },
-  no_marriage: { name: "NO Marriage", pos: [6, 8, 12], neg: [5] },
-  love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], neg: [1, 4, 6, 8, 12] },
-  love_marriage_eloping: { name: "Love Marriage Eloping", pos: [3, 5, 9, 11], neg: [] },
-  love_affair: { name: "Love Affair Only", pos: [5, 8, 11, 12], neg: [4, 5, 6, 10] },
-  love_affair_success: { name: "Love Affair Success", pos: [2, 5, 7, 11], neg: [] },
-  failure_in_love: { name: "Failure in Love", pos: [], neg: [1, 4, 5, 8, 10, 12] },
-  love_marriage_seperation: { name: "Love Marriage Seperation", pos: [], neg: [5, 6, 7, 11, 12] },
-  marriage_temporary_seperation: { name: "Marriage Temporary Seperation", pos: [], neg: [3, 9] },
-  second_marriage: { name: "Second Marriage", pos: [], neg: [2, 5, 7, 9, 11] },
-  child: { name: "Child Birth", pos: [2, 5, 11], neg: [1, 4, 6, 8, 10, 12] },
+const UNIFIED_TEMPLATES = {
+  // --- DEFAULT & BASICS ---
+  manual: { name: "Manual Entry", pos: [], support: [], neg: [], note: "" },
+  even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], support: [8, 12], neg: [1, 3, 5, 7, 9, 11], note: "" },
 
-  income: { name: "Income", pos: [2, 6, 10, 11], neg: [5, 8, 9, 12] },
-  good_in_finance: { name: "Good in Finance", pos: [1, 2, 10, 11], neg: [] },
-  sudden_gain_richness: { name: "Sudden Gain Richness", pos: [2, 6, 8, 10, 11], neg: [] },
-  gain_by_self_efforts: { name: "Gain by Self Efforts", pos: [1, 2, 11], neg: [] },
-  gain_by_life_partner: { name: "Gain by Life Partner", pos: [2, 7, 11], neg: [] },
-  earn_as_broker: { name: "Earn as Broker", pos: [2, 3, 5, 11], neg: [] },
-  gain_through_gambling: { name: "Gain Through Gambling", pos: [2, 5, 6, 11], neg: [] },
-  earn_money_property_vehicle_selling: { name: "Earn Money as Property or Vehicle Selling Business", pos: [2, 3, 11, 12], neg: [] },
-  investment: { name: "Investment", pos: [7, 10, 12], neg: [] },
-  house_or_vehicle_in_loan: { name: "House or Vehicle in Loan", pos: [4, 6, 11], neg: [] },
-  loan_providing_repayment: { name: "Loan Providing Vs Loan Repayment", pos: [2, 5, 8, 12], neg: [2, 6, 8, 11] },
-  loan_receiving_repayment: { name: "Loan Receiving Vs Loan Repayment", pos: [2, 6, 8, 11], neg: [5, 8, 12] },
-  financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], neg: [5, 8, 9, 12] },
-  sudden_loss: { name: "Sudden Loss", pos: [], neg: [2, 5, 8, 12] },
+  // --- EDUCATION ---
+  education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
+  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
 
-  property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], neg: [3, 5, 10] },
-  property_building_with_loan: { name: "Property Building With Loan", pos: [2, 4, 6, 8, 10, 11, 12], neg: [] },
-  property_sale_profit_loss: { name: "Property Sale Profit vs Loss", pos: [3, 6, 12], neg: [3, 5, 12] },
-  property_loss: { name: "Property Loss", pos: [], neg: [1, 5, 8] },
-  home_location_change: { name: "Home Location Change", pos: [], neg: [1, 3, 12] },
-  vehicle_buy_new: { name: "Vehicle Buy New One", pos: [4, 6, 11], neg: [] },
-  vehicle_buy_used: { name: "Vehicle Buy Used One", pos: [4, 5, 9, 11], neg: [] },
-  vehicle_sale: { name: "Vehicle Sale", pos: [], neg: [3, 4, 11, 12] },
+  // --- CAREER, JOB & BUSINESS ---
+  career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
+  job_change: { name: "Job Change", pos: [3, 5, 6, 9], support: [], neg: [], note: "" },
+  transfer: { name: "Transfer", pos: [3, 10, 12], support: [], neg: [], note: "" },
+  suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], support: [], neg: [1, 5, 8, 9, 12], note: "" },
 
-  health: { name: "Health", pos: [1, 5, 11], neg: [4, 6, 8, 12] },
-  recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 11], neg: [1, 6, 8, 12] },
-  long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], neg: [2, 6, 7, 9, 11, 12] },
-  short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], neg: [1, 3, 5, 8, 10] },
-  long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 8, 9], neg: [2, 6, 7, 8, 11, 12] },
-  long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 8, 11], neg: [2, 4, 6, 7, 8, 12] },
-  long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], neg: [2, 4, 6, 7, 8, 12] },
-  accident: { name: "Accident", pos: [], neg: [6, 8, 12] },
-  rape: { name: "Rape", pos: [], neg: [5, 8, 12] },
-  murder: { name: "Murder", pos: [], neg: [2, 7, 8, 12] },
-  suicide: { name: "Suicide", pos: [], neg: [1, 2, 6, 7, 8, 12] },
-  death: { name: "Death", pos: [], neg: [2, 6, 7, 8, 12] },
+  // --- MARRIAGE & RELATIONSHIPS ---
+  marriage: { name: "Marriage", pos: [2, 7, 11], support: [3, 5, 9], neg: [1, 4, 6, 8, 10, 12], note: "Karaka: Venus" },
+  love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], support: [], neg: [1, 4, 6, 8, 12], note: "" },
+  second_marriage: { name: "Second Marriage", pos: [2, 5, 7, 9, 11], support: [], neg: [], note: "" },
 
-  travel: { name: "Travel Abroad", pos: [3, 9, 12], neg: [2, 4, 8, 11] },
-  staying_in_foreign: { name: "Staying in Foreign", pos: [1, 9, 12], neg: [] },
-  foreign_travel_restriction: { name: "Foreign Travel vs Restriction", pos: [3, 7, 9, 12], neg: [2, 6, 8, 11] },
-  foreign_pleasure_trips: { name: "Foreign Pleasure Trips", pos: [5, 9, 11, 12], neg: [] },
-  foreign_going_for_job: { name: "Foreign Going for Job", pos: [6, 9, 10, 11, 12], neg: [] },
-  foreign_going_for_business: { name: "Foreign Going for Business", pos: [7, 9, 10], neg: [] },
-  foreign_going_for_medical: { name: "Foreign Going for Medical Treatment", pos: [1, 6, 9, 12], neg: [] },
-  foreign_going_for_citizenship: { name: "Foreign Going for Citizenship", pos: [7, 9, 10, 12], neg: [] },
-  foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], neg: [] },
-  pilgrimage: { name: "Pilgrimage", pos: [3, 5, 9, 11], neg: [] },
+  // --- CHILDREN ---
+  child: { name: "Child Birth", pos: [2, 5, 11], support: [3, 7, 9], neg: [1, 4, 8, 10, 12], note: "Karaka: Jupiter" },
 
-  court: { name: "Court Cases", pos: [6, 10, 11], neg: [1, 3, 6, 8, 12] },
-  court_case_win: { name: "Court Case Win", pos: [2, 6, 7, 11], neg: [] },
-  court_case_lost: { name: "Court Case Lost", pos: [5, 7, 8, 12], neg: [] },
-  case_close_settlement_payment: { name: "Case Close Settlement Payment", pos: [5, 7, 8, 11], neg: [] },
-  case_compromise: { name: "Case Compromise", pos: [3, 7, 9, 11], neg: [] },
-  litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], neg: [] },
-  litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [2, 6, 7, 12], neg: [] },
-  financial_litigations: { name: "Financial Litigations", pos: [2, 7, 5, 12], neg: [] },
-  property_litigations: { name: "Property Litigations", pos: [4, 7, 8, 11], neg: [] },
-  relationship_litigations: { name: "Relationship Litigations", pos: [1, 6, 7, 12], neg: [] },
-  revenue_litigations: { name: "Revenue Litigations", pos: [3, 4, 8, 12], neg: [] },
-  false_allegation: { name: "False Allegation", pos: [1, 3, 7, 8], neg: [] },
-  others_defeat: { name: "Others Defeat", pos: [6, 7, 11], neg: [] },
-  income_tax_raid: { name: "Income Tax Raid", pos: [10, 12], neg: [] },
-  troubles_from_frauds: { name: "Troubles from Frauds", pos: [3, 8], neg: [] },
-  arrest_by_police: { name: "Arrest by Police", pos: [3, 8, 12], neg: [] },
+  // --- INCOME, WEALTH & FINANCE ---
+  income: { name: "Income", pos: [2, 6, 10, 11], support: [7], neg: [5, 8, 9, 12], note: "" },
+  financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], support: [], neg: [5, 8, 9, 12], note: "" },
+  sudden_loss: { name: "Sudden Loss", pos: [], support: [], neg: [2, 5, 8, 12], note: "" },
 
-  politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], neg: [4, 8, 12] },
-  political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], neg: [] },
-  spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], neg: [] },
-  name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], neg: [1, 8, 12] },
-  negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], neg: [2, 8, 12] },
+  // --- PROPERTY & VEHICLES ---
+  property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], support: [6, 8], neg: [3, 5, 10], note: "" },
+  home_location_change: { name: "Home Location Change", pos: [], support: [], neg: [1, 3, 12], note: "" },
 
-  missing_person_return: { name: "Missing Person Return vs No Return or Dead", pos: [4, 7, 8, 11], neg: [3, 4, 5, 8, 12] },
-  theft_recovery_loss: { name: "Theft Recovery Items vs Loss", pos: [2, 6, 7, 11], neg: [2, 5, 7, 8, 12] },
-  
-  all_round_success_11th: { name: "All Round Success 11th", pos: [1, 2, 3, 6, 10, 11], neg: [] },
-  unfulfilled_desires: { name: "Unfulfilled Desires", pos: [], neg: [5, 8, 11] }
+  // --- HEALTH & LONGEVITY ---
+  health: { name: "Health", pos: [1, 5, 11], support: [3], neg: [4, 6, 8, 12], note: "" },
+  recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 9, 11], support: [], neg: [1, 6, 8, 12], note: "" },
+  long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], support: [], neg: [2, 6, 7, 9, 11, 12], note: "" },
+  short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], support: [], neg: [1, 3, 5, 8, 10], note: "" },
+  long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 9], support: [], neg: [2, 6, 7, 8, 11, 12], note: "" },
+  long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 11], support: [9], neg: [2, 4, 6, 7, 8, 12], note: "" },
+  long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], support: [9], neg: [2, 4, 6, 7, 12], note: "" },
+  accident: { name: "Accident", pos: [], support: [], neg: [6, 8, 12], note: "" },
+  rape: { name: "Rape", pos: [], support: [], neg: [5, 8, 12], note: "" },
+  murder: { name: "Murder", pos: [], support: [], neg: [2, 7, 8, 12], note: "" },
+  suicide_death: { name: "Suicide & Death", pos: [], support: [], neg: [1, 2, 6, 7, 8, 12], note: "" },
+
+  // --- TRAVEL ---
+  travel: { name: "Travel Abroad", pos: [3, 9, 12], support: [7], neg: [2, 4, 8, 11], note: "" },
+  foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], support: [], neg: [], note: "" },
+
+  // --- COURT, LITIGATIONS & POLICE ---
+  court: { name: "Court Cases", pos: [6, 10, 11], support: [], neg: [1, 3, 8, 12], note: "" },
+  court_case: { name: "Court Case Win", pos: [2, 6, 7, 11], support: [], neg: [5, 8, 12], note: "" },
+  litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], support: [], neg: [], note: "" },
+  litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [], support: [], neg: [2, 6, 7, 12], note: "" },
+  financial_litigations: { name: "Financial Litigations", pos: [], support: [], neg: [2, 5, 7, 12], note: "" },
+  property_litigations: { name: "Property Litigations", pos: [], support: [], neg: [4, 7, 8, 11], note: "" },
+  relationship_litigations: { name: "Relationship Litigations", pos: [], support: [], neg: [1, 6, 7, 12], note: "" },
+  revenue_litigations: { name: "Revenue Litigations", pos: [], support: [], neg: [3, 4, 8, 12], note: "" },
+  false_allegation: { name: "False Allegation", pos: [], support: [], neg: [1, 3, 7, 8], note: "" },
+  others_defeat: { name: "Others Defeat", pos: [], support: [], neg: [6, 7, 11], note: "" },
+  income_tax_raid: { name: "Income Tax Raid", pos: [], support: [], neg: [10, 12], note: "" },
+  troubles_from_frauds: { name: "Troubles from Frauds", pos: [], support: [], neg: [3, 8], note: "Karaka: Rahu" },
+  arrest_by_police: { name: "Arrest by Police", pos: [], support: [], neg: [3, 8, 12], note: "Karaka: Rahu, Mars" },
+
+  // --- POLITICS, FAME & NEGOTIATION ---
+  politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], support: [], neg: [4, 8, 12], note: "" },
+  political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], support: [], neg: [], note: "" },
+  spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], support: [], neg: [], note: "" },
+  name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], support: [], neg: [1, 8, 12], note: "" },
+  film_success: { name: "Film Success", pos: [5, 6, 7, 10, 11], support: [], neg: [8, 12], note: "" },
+  negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], support: [], neg: [2, 8, 12], note: "" }
 };
 
 
@@ -5068,31 +5149,84 @@ const mixerTemplatesMap = {
 
 
 
-
-
-
-
-  Object.keys(mixerTemplatesMap).forEach(key => {
+  Object.keys(UNIFIED_TEMPLATES).forEach(key => {
       let opt = document.createElement("option");
       opt.value = key;
-      opt.textContent = mixerTemplatesMap[key].name;
+      opt.textContent = UNIFIED_TEMPLATES[key].name;
       if (key === window.__dbaSelectedTemplate) opt.selected = true;
       tSelect.appendChild(opt);
   });
 
+  tSelect.id = "dbaTemplateSelect"; // Assign an ID to restore focus
+  
   tSelect.onchange = (e) => {
       let val = e.target.value;
       window.__dbaSelectedTemplate = val;
       window.__dbaActiveHighlightNums.clear();
       window.__dbaNegativeHighlightNums.clear();
-      if (val !== "manual") {
-          mixerTemplatesMap[val].pos.forEach(n => window.__dbaActiveHighlightNums.add(n));
-          mixerTemplatesMap[val].neg.forEach(n => window.__dbaNegativeHighlightNums.add(n));
+      window.__dbaSupportHighlightNums.clear();
+      
+      if (val !== "manual" && UNIFIED_TEMPLATES[val]) {
+          UNIFIED_TEMPLATES[val].pos.forEach(n => window.__dbaActiveHighlightNums.add(n));
+          UNIFIED_TEMPLATES[val].neg.forEach(n => window.__dbaNegativeHighlightNums.add(n));
+          if(UNIFIED_TEMPLATES[val].support) {
+              UNIFIED_TEMPLATES[val].support.forEach(n => window.__dbaSupportHighlightNums.add(n));
+          }
       }
       buildDashaBukthiMixer();
+
+      // Restore focus immediately after the UI rebuilds
+      setTimeout(() => {
+          let restoredSelect = document.getElementById("dbaTemplateSelect");
+          if (restoredSelect) restoredSelect.focus();
+      }, 0);
   };
+
+  // Keyboard Infinite Scrolling for the Dropdown
+  tSelect.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault(); 
+          let currentIndex = tSelect.selectedIndex;
+          let total = tSelect.options.length;
+
+          if (e.key === "ArrowDown") {
+              currentIndex = (currentIndex + 1) % total; 
+          } else if (e.key === "ArrowUp") {
+              currentIndex = (currentIndex - 1 + total) % total; 
+          }
+
+          tSelect.selectedIndex = currentIndex;
+          tSelect.dispatchEvent(new Event('change')); // Trigger the change manually
+      }
+  });
+
   templateLabel.appendChild(tSelect);
   templateRow.appendChild(templateLabel);
+
+  // --- ADD NOTE DISPLAY ---
+  let noteDisplayWrap = document.createElement("div");
+  noteDisplayWrap.style = "width:100%; text-align:center; padding-top:8px;";
+  let currentNote = UNIFIED_TEMPLATES[window.__dbaSelectedTemplate]?.note || "";
+  if (currentNote) {
+      noteDisplayWrap.innerHTML = `<span style="color:#10b981; font-weight:900; font-size:14px; background:#010a08; padding:4px 12px; border:1px solid #10b981; border-radius:4px;">NOTE: ${currentNote}</span>`;
+  }
+  templateRow.appendChild(noteDisplayWrap);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   let hideUnLabel = document.createElement("label");
   hideUnLabel.style = "font-weight:900; color:#d4af37; cursor:pointer; display:inline-flex; align-items:center; gap:6px;";
@@ -5140,6 +5274,53 @@ const mixerTemplatesMap = {
       posRow.appendChild(btn);
   }
   hlWrap.appendChild(posRow);
+  
+  // --- SUPPORTIVE SELECTOR ROW ---
+  let supRow = document.createElement("div");
+  supRow.style = "display:flex; justify-content:center; gap:10px; flex-wrap:wrap; align-items:center;";
+  let supLabel = document.createElement("span");
+  supLabel.innerHTML = "SUPPORTIVE :";
+  supLabel.style = "color:#38bdf8; font-weight:900; font-size:16px; margin-right:5px; min-width:100px; text-align:right;";
+  supRow.appendChild(supLabel);
+
+  let clearSupBtn = document.createElement("button");
+  clearSupBtn.innerHTML = "🧹 Clear";
+  clearSupBtn.style = "background:linear-gradient(135deg, #475569, #1e293b); color:#38bdf8; border:1px solid #38bdf8; padding:6px 14px; font-weight:900; cursor:pointer; border-radius:4px; margin-right:15px;";
+  clearSupBtn.onclick = () => { window.__dbaSupportHighlightNums.clear(); window.__dbaSelectedTemplate = "manual"; buildDashaBukthiMixer(); };
+  supRow.appendChild(clearSupBtn);
+
+  for (let i = 1; i <= 12; i++) {
+      let btn = document.createElement("button");
+      btn.innerHTML = i;
+      let isActive = window.__dbaSupportHighlightNums.has(i);
+      btn.style = isActive 
+          ? "background:#38bdf8; color:#000; font-weight:900; border:2px solid #000; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #38bdf8;"
+          : "background:#010a08; color:#10b981; font-weight:900; border:1px solid #10b981; padding:6px 14px; cursor:pointer; border-radius:4px;";
+      
+      btn.onclick = () => {
+          if (window.__dbaSupportHighlightNums.has(i)) window.__dbaSupportHighlightNums.delete(i);
+          else { 
+              window.__dbaSupportHighlightNums.add(i); 
+              window.__dbaNegativeHighlightNums.delete(i); 
+              window.__dbaActiveHighlightNums.delete(i); 
+          }
+          window.__dbaSelectedTemplate = "manual";
+          buildDashaBukthiMixer();
+      };
+      supRow.appendChild(btn);
+  }
+  hlWrap.appendChild(supRow);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   // --- NEGATIVE SELECTOR ROW ---
   let negRow = document.createElement("div");
@@ -5187,6 +5368,8 @@ const mixerTemplatesMap = {
           
           if (window.__dbaNegativeHighlightNums.has(n)) {
               formattedParts.push(`<span style="background-color:#8b0000; color:#ffffff; padding:2px 5px; border:1px solid #ffffff; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${n}</span>`);
+          } else if (window.__dbaSupportHighlightNums.has(n)) {
+              formattedParts.push(`<span style="background-color:#000; color:#38bdf8; padding:2px 5px; border:1px solid #38bdf8; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${n}</span>`);
           } else if (window.__dbaActiveHighlightNums.has(n)) {
               formattedParts.push(`<span style="background-color:#000; color:#facc15; padding:2px 5px; border:1px solid #facc15; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${n}</span>`);
           } else if (!window.__dbaHideUnselected) {
@@ -5458,6 +5641,8 @@ const mixerTemplatesMap = {
       
       if (window.__dbaNegativeHighlightNums.has(val)) {
           return `<span style="background-color:#8b0000; color:#ffffff; padding:2px 5px; border:1px solid #ffffff; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${displayVal}</span>`;
+      } else if (window.__dbaSupportHighlightNums.has(val)) {
+          return `<span style="background-color:#000; color:#38bdf8; padding:2px 5px; border:1px solid #38bdf8; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${displayVal}</span>`;
       } else if (window.__dbaActiveHighlightNums.has(val)) {
           return `<span style="background-color:#000; color:#facc15; padding:2px 5px; border:1px solid #facc15; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${displayVal}</span>`;
       }
@@ -5478,10 +5663,10 @@ const mixerTemplatesMap = {
 
     tr.innerHTML = `
       <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center;">
-        ${getPlanetLabel(effectiveDashaPlanet)} - <span style="color:${dashaColor}; font-weight:500;">${dashaStr}</span>
+        ${getPlanetLabel(effectiveDashaPlanet)} &nbsp;&nbsp;-&nbsp;&nbsp; <span style="color:${dashaColor}; font-weight:500;">${dashaStr}</span>
       </td>
       <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center;">
-        ${getPlanetLabel(bukthiPlanet)} - <span style="color:${bukthiColor}; font-weight:500;">${bukthiStr}</span>
+        ${getPlanetLabel(bukthiPlanet)} &nbsp;&nbsp;-&nbsp;&nbsp; <span style="color:${bukthiColor}; font-weight:500;">${bukthiStr}</span>
       </td>
       <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center;">
         ${mixedHtml}
@@ -5600,6 +5785,8 @@ const mixerTemplatesMap = {
       
       if (window.__dbaNegativeHighlightNums.has(val)) {
           return `<span style="background-color:#8b0000; color:#ffffff; padding:2px 5px; border:1px solid #ffffff; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${displayVal}</span>`;
+      } else if (window.__dbaSupportHighlightNums.has(val)) {
+          return `<span style="background-color:#000; color:#38bdf8; padding:2px 5px; border:1px solid #38bdf8; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${displayVal}</span>`;
       } else if (window.__dbaActiveHighlightNums.has(val)) {
           return `<span style="background-color:#000; color:#facc15; padding:2px 5px; border:1px solid #facc15; border-radius:4px; font-weight:500; display:inline-block; margin: 2px 2px; line-height: 1;">${displayVal}</span>`;
       }
@@ -5620,10 +5807,10 @@ const mixerTemplatesMap = {
 
     tr.innerHTML = `
       <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center;">
-        ${getPlanetLabel(bukthiPlanet2)} - <span style="color:${bukthiColor}; font-weight:500;">${bStr}</span>
+        ${getPlanetLabel(bukthiPlanet2)} &nbsp;&nbsp;-&nbsp;&nbsp; <span style="color:${bukthiColor}; font-weight:500;">${bStr}</span>
       </td>
       <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center;">
-        ${getPlanetLabel(antaraPlanet)} - <span style="color:${antaraColor}; font-weight:500;">${aStr}</span>
+        ${getPlanetLabel(antaraPlanet)} &nbsp;&nbsp;-&nbsp;&nbsp; <span style="color:${antaraColor}; font-weight:500;">${aStr}</span>
       </td>
       <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center;">
         ${mixedHtml2}
@@ -5737,7 +5924,7 @@ function getPlanetSignificatorsSplit(planet, forceUntenanted = false, forceStarl
       // remove duplicates and sort
       nums = [...new Set(nums)].sort((a,b)=>a-b);
 
-      blocks.push(`${p_house}-${nums.join(",")}`);
+      blocks.push(`${p_house} - ${nums.join(",")}`);
     }
   }
   
@@ -5770,7 +5957,7 @@ function getPlanetSignificatorsSplit(planet, forceUntenanted = false, forceStarl
     if(nums.length===1){
       blocks.push(`${nums[0]}`);
     }else{
-      blocks.push(`${s_house}-${nums.join(",")}`);
+      blocks.push(`${s_house} - ${nums.join(",")}`);
     }
   }
 
@@ -6022,7 +6209,7 @@ function getPlanetSignificatorsSplit2(planet, forceUntenanted = false, forceStar
     if(nums.length===0){
       return `${house}`;
     }
-    return `${house}-${nums.join(",")}`;
+    return `${house} - ${nums.join(",")}`;
 
 	
 	
@@ -7237,141 +7424,82 @@ function toggleSignificators(){
 
 
 
-
 /* =========================================================
    DASHA & BUKTHI MIXER DIVIDER ENGINE
 ========================================================= */
 
+const UNIFIED_TEMPLATES = {
+  // --- DEFAULT & BASICS ---
+  manual: { name: "Manual Entry", pos: [], support: [], neg: [], note: "" },
+  even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], support: [8, 12], neg: [1, 3, 5, 7, 9, 11], note: "" },
 
+  // --- EDUCATION ---
+  education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
+  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
 
+  // --- CAREER, JOB & BUSINESS ---
+  career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
+  job_change: { name: "Job Change", pos: [3, 5, 6, 9], support: [], neg: [], note: "" },
+  transfer: { name: "Transfer", pos: [3, 10, 12], support: [], neg: [], note: "" },
+  suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], support: [], neg: [1, 5, 8, 9, 12], note: "" },
 
+  // --- MARRIAGE & RELATIONSHIPS ---
+  marriage: { name: "Marriage", pos: [2, 7, 11], support: [3, 5, 9], neg: [1, 4, 6, 8, 10, 12], note: "Karaka: Venus" },
+  love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], support: [], neg: [1, 4, 6, 8, 12], note: "" },
+  second_marriage: { name: "Second Marriage", pos: [2, 5, 7, 9, 11], support: [], neg: [], note: "" },
 
+  // --- CHILDREN ---
+  child: { name: "Child Birth", pos: [2, 5, 11], support: [3, 7, 9], neg: [1, 4, 8, 10, 12], note: "Karaka: Jupiter" },
 
+  // --- INCOME, WEALTH & FINANCE ---
+  income: { name: "Income", pos: [2, 6, 10, 11], support: [7], neg: [5, 8, 9, 12], note: "" },
+  financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], support: [], neg: [5, 8, 9, 12], note: "" },
+  sudden_loss: { name: "Sudden Loss", pos: [], support: [], neg: [2, 5, 8, 12], note: "" },
 
+  // --- PROPERTY & VEHICLES ---
+  property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], support: [6, 8], neg: [3, 5, 10], note: "" },
+  home_location_change: { name: "Home Location Change", pos: [], support: [], neg: [1, 3, 12], note: "" },
 
-const DIVIDER_TEMPLATES = {
-  manual: { pos: "", support: "", neg: "" },
-  even_odd: { pos: "2,4,6,8,10,12", support: "8,12", neg: "1,3,5,7,9,11" },
+  // --- HEALTH & LONGEVITY ---
+  health: { name: "Health", pos: [1, 5, 11], support: [3], neg: [4, 6, 8, 12], note: "" },
+  recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 9, 11], support: [], neg: [1, 6, 8, 12], note: "" },
+  long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], support: [], neg: [2, 6, 7, 9, 11, 12], note: "" },
+  short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], support: [], neg: [1, 3, 5, 8, 10], note: "" },
+  long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 9], support: [], neg: [2, 6, 7, 8, 11, 12], note: "" },
+  long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 11], support: [9], neg: [2, 4, 6, 7, 8, 12], note: "" },
+  long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], support: [9], neg: [2, 4, 6, 7, 12], note: "" },
+  accident: { name: "Accident", pos: [], support: [], neg: [6, 8, 12], note: "" },
+  rape: { name: "Rape", pos: [], support: [], neg: [5, 8, 12], note: "" },
+  murder: { name: "Murder", pos: [], support: [], neg: [2, 7, 8, 12], note: "" },
+  suicide_death: { name: "Suicide & Death", pos: [], support: [], neg: [1, 2, 6, 7, 8, 12], note: "" },
 
-  education: { pos: "4,5,9,11", support: "1,2,7,10", neg: "3,6,8,12" },
-  career: { pos: "2,6,10,11", support: "2,4,7", neg: "5,8,9,12" },
-  interview_pass_fail: { pos: "3,5,11", support: "", neg: "3,5,12" },
-  job_change: { pos: "2,6,9", support: "", neg: "" },
-  transfer: { pos: "3,10,12", support: "", neg: "" },
-  suspension_or_dismissal: { pos: "", support: "", neg: "1,5,9,12" },
-  earn_by_service_job: { pos: "2,6", support: "", neg: "5,8,12" },
-  self_employed: { pos: "2,6,7,10,11", support: "", neg: "" },
-  self_employed_profit_loss: { pos: "6,7,11", support: "", neg: "5,7,12" },
-  business_success_new_shop: { pos: "3,7,10,11", support: "", neg: "5,7,12" },
-  partnership_good_bad: { pos: "5,7,11", support: "", neg: "5,7,12" },
-  contract_good_bad: { pos: "7,10,11", support: "", neg: "1,7,8" },
+  // --- TRAVEL ---
+  travel: { name: "Travel Abroad", pos: [3, 9, 12], support: [7], neg: [2, 4, 8, 11], note: "" },
+  foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], support: [], neg: [], note: "" },
 
-  marriage: { pos: "2,7,11", support: "3,5,9", neg: "1,4,6,8,10,12" },
-  no_marriage: { pos: "6,8,12", support: "1,4,10", neg: "5" },
-  love_marriage: { pos: "2,5,7,11", support: "7", neg: "1,4,6,8,12" },
-  love_marriage_eloping: { pos: "3,5,9,11", support: "", neg: "" },
-  love_affair: { pos: "5,8,11,12", support: "", neg: "4,5,6,10" },
-  love_affair_success: { pos: "2,5,7,11", support: "", neg: "" },
-  failure_in_love: { pos: "", support: "", neg: "1,4,5,8,10,12" },
-  love_marriage_seperation: { pos: "", support: "", neg: "5,6,7,11,12" },
-  marriage_temporary_seperation: { pos: "", support: "", neg: "3,9" },
-  second_marriage: { pos: "", support: "", neg: "2,5,7,9,11" },
-  child: { pos: "2,5,11", support: "3,7,9", neg: "1,4,6,8,10,12" },
+  // --- COURT, LITIGATIONS & POLICE ---
+  court: { name: "Court Cases", pos: [6, 10, 11], support: [], neg: [1, 3, 8, 12], note: "" },
+  court_case: { name: "Court Case Win", pos: [2, 6, 7, 11], support: [], neg: [5, 8, 12], note: "" },
+  litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], support: [], neg: [], note: "" },
+  litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [], support: [], neg: [2, 6, 7, 12], note: "" },
+  financial_litigations: { name: "Financial Litigations", pos: [], support: [], neg: [2, 5, 7, 12], note: "" },
+  property_litigations: { name: "Property Litigations", pos: [], support: [], neg: [4, 7, 8, 11], note: "" },
+  relationship_litigations: { name: "Relationship Litigations", pos: [], support: [], neg: [1, 6, 7, 12], note: "" },
+  revenue_litigations: { name: "Revenue Litigations", pos: [], support: [], neg: [3, 4, 8, 12], note: "" },
+  false_allegation: { name: "False Allegation", pos: [], support: [], neg: [1, 3, 7, 8], note: "" },
+  others_defeat: { name: "Others Defeat", pos: [], support: [], neg: [6, 7, 11], note: "" },
+  income_tax_raid: { name: "Income Tax Raid", pos: [], support: [], neg: [10, 12], note: "" },
+  troubles_from_frauds: { name: "Troubles from Frauds", pos: [], support: [], neg: [3, 8], note: "Karaka: Rahu" },
+  arrest_by_police: { name: "Arrest by Police", pos: [], support: [], neg: [3, 8, 12], note: "Karaka: Rahu, Mars" },
 
-  income: { pos: "2,6,10,11", support: "1,7", neg: "5,8,9,12" },
-  good_in_finance: { pos: "1,2,10,11", support: "", neg: "" },
-  sudden_gain_richness: { pos: "2,6,8,10,11", support: "", neg: "" },
-  gain_by_self_efforts: { pos: "1,2,11", support: "", neg: "" },
-  gain_by_life_partner: { pos: "2,7,11", support: "", neg: "" },
-  earn_as_broker: { pos: "2,3,5,11", support: "", neg: "" },
-  gain_through_gambling: { pos: "2,5,6,11", support: "", neg: "" },
-  earn_money_property_vehicle_selling: { pos: "2,3,11,12", support: "", neg: "" },
-  investment: { pos: "7,10,12", support: "", neg: "" },
-  house_or_vehicle_in_loan: { pos: "4,6,11", support: "", neg: "" },
-  loan_providing_repayment: { pos: "2,5,8,12", support: "", neg: "2,6,8,11" },
-  loan_receiving_repayment: { pos: "2,6,8,11", support: "", neg: "5,8,12" },
-  financial_crisis_bankrupt: { pos: "2,6,11", support: "", neg: "5,8,9,12" },
-  sudden_loss: { pos: "", support: "", neg: "2,5,8,12" },
-
-  property: { pos: "4,11,12", support: "6,8", neg: "3,5,10" },
-  property_building_with_loan: { pos: "2,4,6,8,10,11,12", support: "", neg: "" },
-  property_sale_profit_loss: { pos: "3,6,12", support: "", neg: "3,5,12" },
-  property_loss: { pos: "", support: "", neg: "1,5,8" },
-  home_location_change: { pos: "", support: "", neg: "1,3,12" },
-  vehicle_buy_new: { pos: "4,6,11", support: "", neg: "" },
-  vehicle_buy_used: { pos: "4,5,9,11", support: "", neg: "" },
-  vehicle_sale: { pos: "", support: "", neg: "3,4,11,12" },
-
-  health: { pos: "1,5,11", support: "3", neg: "4,6,8,12" },
-  recovery_vs_sick_chronic: { pos: "5,11", support: "", neg: "1,6,8,12" },
-  long_life: { pos: "1,3,5,8,10", support: "", neg: "2,6,7,9,11,12" },
-  short_life: { pos: "2,6,7,9,11,12", support: "", neg: "1,3,5,8,10" },
-  long_char: { pos: "1,3,5,8,9", support: "", neg: "2,6,7,8,11,12" },
-  long_sthira: { pos: "1,3,5,8,11", support: "9", neg: "2,4,6,7,8,12" },
-  long_dwi: { pos: "1,3,5,8,11", support: "9", neg: "2,4,6,7,8,12" },
-  accident: { pos: "", support: "", neg: "6,8,12" },
-  rape: { pos: "", support: "", neg: "5,8,12" },
-  murder: { pos: "", support: "", neg: "2,7,8,12" },
-  suicide: { pos: "", support: "", neg: "1,2,6,7,8,12" },
-  death: { pos: "", support: "", neg: "2,6,7,8,12" },
-
-  travel: { pos: "3,9,12", support: "7", neg: "2,4,8,11" },
-  staying_in_foreign: { pos: "1,9,12", support: "", neg: "" },
-  foreign_travel_restriction: { pos: "3,7,9,12", support: "", neg: "2,6,8,11" },
-  foreign_pleasure_trips: { pos: "5,9,11,12", support: "", neg: "" },
-  foreign_going_for_job: { pos: "6,9,10,11,12", support: "", neg: "" },
-  foreign_going_for_business: { pos: "7,9,10", support: "", neg: "" },
-  foreign_going_for_medical: { pos: "1,6,9,12", support: "", neg: "" },
-  foreign_going_for_citizenship: { pos: "7,9,10,12", support: "", neg: "" },
-  foreign_going_for_education: { pos: "4,9,11,12", support: "", neg: "" },
-  pilgrimage: { pos: "3,5,9,11", support: "", neg: "" },
-
-  court: { pos: "6,10,11", support: "", neg: "1,3,6,8,12" },
-  court_case_win: { pos: "2,6,7,11", support: "", neg: "" },
-  court_case_lost: { pos: "5,7,8,12", support: "", neg: "" },
-  case_close_settlement_payment: { pos: "5,7,8,11", support: "", neg: "" },
-  case_compromise: { pos: "3,7,9,11", support: "", neg: "" },
-  litigations_mutual_withdrawal: { pos: "5,7,12", support: "", neg: "" },
-  litigation_settlement_loss: { pos: "2,6,7,12", support: "", neg: "" },
-  financial_litigations: { pos: "2,7,5,12", support: "", neg: "" },
-  property_litigations: { pos: "4,7,8,11", support: "", neg: "" },
-  relationship_litigations: { pos: "1,6,7,12", support: "", neg: "" },
-  revenue_litigations: { pos: "3,4,8,12", support: "", neg: "" },
-  false_allegation: { pos: "1,3,7,8", support: "", neg: "" },
-  others_defeat: { pos: "6,7,11", support: "", neg: "" },
-  income_tax_raid: { pos: "10,12", support: "", neg: "" },
-  troubles_from_frauds: { pos: "3,8", support: "", neg: "" },
-  arrest_by_police: { pos: "3,8,12", support: "", neg: "" },
-
-  politics_election_success_failure: { pos: "1,6,11", support: "", neg: "4,8,12" },
-  political_leader: { pos: "1,6,9,10,11", support: "", neg: "" },
-  spiritual_leader: { pos: "1,5,9,11,12", support: "", neg: "" },
-  name_fame_popular: { pos: "3,6,10,11", support: "", neg: "1,8,12" },
-  negotiation_success_failure: { pos: "3,9,11", support: "", neg: "2,8,12" },
-
-  missing_person_return: { pos: "4,7,8,11", support: "", neg: "3,4,5,8,12" },
-  theft_recovery_loss: { pos: "2,6,7,11", support: "", neg: "2,5,7,8,12" },
-
-  all_round_success_11th: { pos: "1,2,3,6,10,11", support: "", neg: "" },
-  unfulfilled_desires: { pos: "", support: "", neg: "5,8,11" }
+  // --- POLITICS, FAME & NEGOTIATION ---
+  politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], support: [], neg: [4, 8, 12], note: "" },
+  political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], support: [], neg: [], note: "" },
+  spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], support: [], neg: [], note: "" },
+  name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], support: [], neg: [1, 8, 12], note: "" },
+  film_success: { name: "Film Success", pos: [5, 6, 7, 10, 11], support: [], neg: [8, 12], note: "" },
+  negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], support: [], neg: [2, 8, 12], note: "" }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 function renderDashaDividerTable() {
   const wrap = document.getElementById("dashaDividerTableWrap");
@@ -7470,28 +7598,39 @@ function renderDashaDividerTable() {
 
 // Event Listeners for Divider Inputs
 setTimeout(() => {
-  document.getElementById("dividerTemplate")?.addEventListener("change", (e) => {
-    const selected = e.target.value;
-    if(selected === "manual"){
-      document.getElementById("dividerPos").value = "";
-      document.getElementById("dividerSupport").value = "";
-      document.getElementById("dividerNeg").value = "";
-    } else {
-      document.getElementById("dividerPos").value = DIVIDER_TEMPLATES[selected].pos;
-      document.getElementById("dividerSupport").value = DIVIDER_TEMPLATES[selected].support;
-      document.getElementById("dividerNeg").value = DIVIDER_TEMPLATES[selected].neg;
-    }
-    renderDashaDividerTable();
-  });
+  const dividerSelect = document.getElementById("dividerTemplate");
+  if (dividerSelect) {
+      // Dynamically rebuild the dropdown options based on UNIFIED_TEMPLATES
+      dividerSelect.innerHTML = "";
+      Object.keys(UNIFIED_TEMPLATES).forEach(key => {
+          let opt = document.createElement("option");
+          opt.value = key;
+          opt.textContent = UNIFIED_TEMPLATES[key].name;
+          dividerSelect.appendChild(opt);
+      });
+      
+      dividerSelect.addEventListener("change", (e) => {
+        const selected = e.target.value;
+        if(selected === "manual" || !UNIFIED_TEMPLATES[selected]){
+          document.getElementById("dividerPos").value = "";
+          document.getElementById("dividerSupport").value = "";
+          document.getElementById("dividerNeg").value = "";
+        } else {
+          document.getElementById("dividerPos").value = UNIFIED_TEMPLATES[selected].pos.join(",");
+          document.getElementById("dividerSupport").value = UNIFIED_TEMPLATES[selected].support.join(",");
+          document.getElementById("dividerNeg").value = UNIFIED_TEMPLATES[selected].neg.join(",");
+        }
+        renderDashaDividerTable();
+      });
+  }
 
   ["dividerPos", "dividerSupport", "dividerNeg"].forEach(id => {
     document.getElementById(id)?.addEventListener("input", () => {
-      document.getElementById("dividerTemplate").value = "manual";
+      if (dividerSelect) dividerSelect.value = "manual";
       renderDashaDividerTable();
     });
   });
 }, 100);
-
 
 
 
@@ -7619,6 +7758,26 @@ if (typeof window.__dba3SplitView2 === 'undefined') window.__dba3SplitView2 = fa
             }
         }
 
+        
+		
+		
+		
+		
+		
+		let aspConjNums = [];
+        if (window.__dba3AddRaKeAspectedBy && (ent === "Rahu" || ent === "Ketu")) {
+            let txtAsp = getAspectedBy(ent);
+            if (txtAsp && txtAsp !== "-") {
+                let matches = txtAsp.match(/\((.*?)\)/g) || [];
+                matches.forEach(x => x.replace(/[()]/g,"").split(",").forEach(n => aspConjNums.push(parseInt(n))));
+            }
+            let txtConj = getConjunctPlanets(ent);
+            if (txtConj && txtConj !== "-") {
+                let matches = txtConj.match(/\((.*?)\)/g) || [];
+                matches.forEach(x => x.replace(/[()]/g,"").split(",").forEach(n => aspConjNums.push(parseInt(n))));
+            }
+        }
+
         nums = nums.filter(x => !isNaN(x));
         nums = [...new Set(nums)];
 
@@ -7636,12 +7795,28 @@ if (typeof window.__dba3SplitView2 === 'undefined') window.__dba3SplitView2 = fa
         }
 
         nums.sort((a,b) => a - b);
-        if(!h) return nums.join(",") || "-";
-        if(nums.length === 0) return `${h}`;
-        if ((ent === "Rahu" || ent === "Ketu") && nums.length === 1 && nums[0] === parseInt(h)) return `${h}`;
         
-        return `${h}-${nums.join(",")}`;
+        let blockStr = "";
+        if(!h) blockStr = nums.join(",") || "-";
+        else if(nums.length === 0) blockStr = `${h}`;
+        else if ((ent === "Rahu" || ent === "Ketu") && nums.length === 1 && nums[0] === parseInt(h)) blockStr = `${h}`;
+        else blockStr = `${h} &nbsp;&nbsp;-&nbsp;&nbsp; ${nums.join(",")}`;
+
+        aspConjNums = aspConjNums.filter(x => !isNaN(x));
+        aspConjNums = [...new Set(aspConjNums)].sort((a,b) => a - b);
+        if (aspConjNums.length > 0) {
+            blockStr += ` + ${aspConjNums.join(",")}`;
+        }
+        
+        return blockStr;
     }
+	
+	
+	
+	
+	
+	
+	
 
     // UPDATED: Main extraction logic to handle all views (UNIFIED & FIXED)
     function getMixer3Nums(p, showP, showS) {
@@ -7760,6 +7935,19 @@ if (typeof window.__dba3SplitView2 === 'undefined') window.__dba3SplitView2 = fa
                             if(c && c!=="-") c.split(",").forEach(x=>nums.push(parseInt(x)));
                         }
                     }
+
+                    if (window.__dba3AddRaKeAspectedBy && (sl === "Rahu" || sl === "Ketu")) {
+                        let txtAsp = getAspectedBy(sl);
+                        if (txtAsp && txtAsp !== "-") {
+                            let matches = txtAsp.match(/\((.*?)\)/g) || [];
+                            matches.forEach(x => x.replace(/[()]/g,"").split(",").forEach(n => nums.push(parseInt(n))));
+                        }
+                        let txtConj = getConjunctPlanets(sl);
+                        if (txtConj && txtConj !== "-") {
+                            let matches = txtConj.match(/\((.*?)\)/g) || [];
+                            matches.forEach(x => x.replace(/[()]/g,"").split(",").forEach(n => nums.push(parseInt(n))));
+                        }
+                    }
                 }
             }
             
@@ -7793,6 +7981,9 @@ function buildDashaBukthiAntaraMixer() {
     }
     if (typeof window.__dba3NegativeHighlightNums === 'undefined') {
         window.__dba3NegativeHighlightNums = new Set(); 
+    }
+    if (typeof window.__dba3SupportHighlightNums === 'undefined') {
+        window.__dba3SupportHighlightNums = new Set(); // NEW SUPPORTIVE SET
     }
     
     // Initialize Template & Hide States
@@ -7956,6 +8147,16 @@ function buildDashaBukthiAntaraMixer() {
     dispLabel.appendChild(dispCb);
     dispLabel.appendChild(document.createTextNode(" Ra/Ke Special Rule"));
 
+    if (typeof window.__dba3AddRaKeAspectedBy === 'undefined') window.__dba3AddRaKeAspectedBy = true;
+    let rakeAspLabel = document.createElement("label");
+    rakeAspLabel.style = "font-weight:900; color:#d4af37; cursor:pointer; font-size:18px; margin-left:15px;";
+    let rakeAspCb = document.createElement("input");
+    rakeAspCb.type = "checkbox";
+    rakeAspCb.checked = window.__dba3AddRaKeAspectedBy;
+    rakeAspCb.onchange = (e) => { window.__dba3AddRaKeAspectedBy = e.target.checked; buildDashaBukthiAntaraMixer(); };
+    rakeAspLabel.appendChild(rakeAspCb);
+    rakeAspLabel.appendChild(document.createTextNode(" Add Ra / Ke Asp - Conj"));
+
     if (typeof window.__dba3RemoveDuplicates === 'undefined') window.__dba3RemoveDuplicates = true;
     let dupLabel = document.createElement("label");
     dupLabel.style = "font-weight:900; color:#d4af37; cursor:pointer; font-size:18px; margin-left:15px;";
@@ -7974,6 +8175,7 @@ function buildDashaBukthiAntaraMixer() {
     viewToggleWrap.appendChild(splitLabel);
     viewToggleWrap.appendChild(split2Label);
     viewToggleWrap.appendChild(dispLabel); 
+    viewToggleWrap.appendChild(rakeAspLabel);
     viewToggleWrap.appendChild(dupLabel); 
     innerWrap.appendChild(viewToggleWrap);
 
@@ -8054,113 +8256,77 @@ function buildDashaBukthiAntaraMixer() {
 	
 	
 	
-	
-	
-	const mixerTemplatesMap = {
-  manual: { name: "Manual Entry", pos: [], neg: [] },
-  even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], neg: [1, 3, 5, 7, 9, 11] },
-  
-  education: { name: "Education", pos: [4, 5, 9, 11], neg: [3, 6, 8, 12] },
-  career: { name: "Career & Business", pos: [2, 6, 10, 11], neg: [5, 8, 12] },
-  interview_pass_fail: { name: "Interview Pass Fail", pos: [3, 5, 11], neg: [3, 5, 12] },
-  job_change: { name: "Job Change", pos: [2, 6, 9], neg: [] },
-  transfer: { name: "Transfer", pos: [3, 10, 12], neg: [] },
-  suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], neg: [1, 5, 9, 12] },
-  earn_by_service_job: { name: "Earn by Service or Job", pos: [2, 6], neg: [5, 8, 12] },
-  self_employed: { name: "Self Employed", pos: [2, 6, 7, 10, 11], neg: [] },
-  self_employed_profit_loss: { name: "Self Employed Profit vs Loss", pos: [6, 7, 11], neg: [5, 7, 12] },
-  business_success_new_shop: { name: "Business Success in New Shop / Restaurant", pos: [3, 7, 10, 11], neg: [5, 7, 12] },
-  partnership_good_bad: { name: "Partnership Good Vs Bad", pos: [5, 7, 11], neg: [5, 7, 12] },
-  contract_good_bad: { name: "Contract Good Vs Bad Contract", pos: [7, 10, 11], neg: [1, 7, 8] },
+const UNIFIED_TEMPLATES = {
+  // --- DEFAULT & BASICS ---
+  manual: { name: "Manual Entry", pos: [], support: [], neg: [], note: "" },
+  even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], support: [8, 12], neg: [1, 3, 5, 7, 9, 11], note: "" },
 
-  marriage: { name: "Marriage", pos: [2, 7, 11], neg: [1, 4, 6, 8, 10, 12] },
-  no_marriage: { name: "NO Marriage", pos: [6, 8, 12], neg: [5] },
-  love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], neg: [1, 4, 6, 8, 12] },
-  love_marriage_eloping: { name: "Love Marriage Eloping", pos: [3, 5, 9, 11], neg: [] },
-  love_affair: { name: "Love Affair Only", pos: [5, 8, 11, 12], neg: [4, 5, 6, 10] },
-  love_affair_success: { name: "Love Affair Success", pos: [2, 5, 7, 11], neg: [] },
-  failure_in_love: { name: "Failure in Love", pos: [], neg: [1, 4, 5, 8, 10, 12] },
-  love_marriage_seperation: { name: "Love Marriage Seperation", pos: [], neg: [5, 6, 7, 11, 12] },
-  marriage_temporary_seperation: { name: "Marriage Temporary Seperation", pos: [], neg: [3, 9] },
-  second_marriage: { name: "Second Marriage", pos: [], neg: [2, 5, 7, 9, 11] },
-  child: { name: "Child Birth", pos: [2, 5, 11], neg: [1, 4, 6, 8, 10, 12] },
+  // --- EDUCATION ---
+  education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
+  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
 
-  income: { name: "Income", pos: [2, 6, 10, 11], neg: [5, 8, 9, 12] },
-  good_in_finance: { name: "Good in Finance", pos: [1, 2, 10, 11], neg: [] },
-  sudden_gain_richness: { name: "Sudden Gain Richness", pos: [2, 6, 8, 10, 11], neg: [] },
-  gain_by_self_efforts: { name: "Gain by Self Efforts", pos: [1, 2, 11], neg: [] },
-  gain_by_life_partner: { name: "Gain by Life Partner", pos: [2, 7, 11], neg: [] },
-  earn_as_broker: { name: "Earn as Broker", pos: [2, 3, 5, 11], neg: [] },
-  gain_through_gambling: { name: "Gain Through Gambling", pos: [2, 5, 6, 11], neg: [] },
-  earn_money_property_vehicle_selling: { name: "Earn Money as Property or Vehicle Selling Business", pos: [2, 3, 11, 12], neg: [] },
-  investment: { name: "Investment", pos: [7, 10, 12], neg: [] },
-  house_or_vehicle_in_loan: { name: "House or Vehicle in Loan", pos: [4, 6, 11], neg: [] },
-  loan_providing_repayment: { name: "Loan Providing Vs Loan Repayment", pos: [2, 5, 8, 12], neg: [2, 6, 8, 11] },
-  loan_receiving_repayment: { name: "Loan Receiving Vs Loan Repayment", pos: [2, 6, 8, 11], neg: [5, 8, 12] },
-  financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], neg: [5, 8, 9, 12] },
-  sudden_loss: { name: "Sudden Loss", pos: [], neg: [2, 5, 8, 12] },
+  // --- CAREER, JOB & BUSINESS ---
+  career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
+  job_change: { name: "Job Change", pos: [3, 5, 6, 9], support: [], neg: [], note: "" },
+  transfer: { name: "Transfer", pos: [3, 10, 12], support: [], neg: [], note: "" },
+  suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], support: [], neg: [1, 5, 8, 9, 12], note: "" },
 
-  property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], neg: [3, 5, 10] },
-  property_building_with_loan: { name: "Property Building With Loan", pos: [2, 4, 6, 8, 10, 11, 12], neg: [] },
-  property_sale_profit_loss: { name: "Property Sale Profit vs Loss", pos: [3, 6, 12], neg: [3, 5, 12] },
-  property_loss: { name: "Property Loss", pos: [], neg: [1, 5, 8] },
-  home_location_change: { name: "Home Location Change", pos: [], neg: [1, 3, 12] },
-  vehicle_buy_new: { name: "Vehicle Buy New One", pos: [4, 6, 11], neg: [] },
-  vehicle_buy_used: { name: "Vehicle Buy Used One", pos: [4, 5, 9, 11], neg: [] },
-  vehicle_sale: { name: "Vehicle Sale", pos: [], neg: [3, 4, 11, 12] },
+  // --- MARRIAGE & RELATIONSHIPS ---
+  marriage: { name: "Marriage", pos: [2, 7, 11], support: [3, 5, 9], neg: [1, 4, 6, 8, 10, 12], note: "Karaka: Venus" },
+  love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], support: [], neg: [1, 4, 6, 8, 12], note: "" },
+  second_marriage: { name: "Second Marriage", pos: [2, 5, 7, 9, 11], support: [], neg: [], note: "" },
 
-  health: { name: "Health", pos: [1, 5, 11], neg: [4, 6, 8, 12] },
-  recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 11], neg: [1, 6, 8, 12] },
-  long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], neg: [2, 6, 7, 9, 11, 12] },
-  short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], neg: [1, 3, 5, 8, 10] },
-  long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 8, 9], neg: [2, 6, 7, 8, 11, 12] },
-  long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 8, 11], neg: [2, 4, 6, 7, 8, 12] },
-  long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], neg: [2, 4, 6, 7, 8, 12] },
-  accident: { name: "Accident", pos: [], neg: [6, 8, 12] },
-  rape: { name: "Rape", pos: [], neg: [5, 8, 12] },
-  murder: { name: "Murder", pos: [], neg: [2, 7, 8, 12] },
-  suicide: { name: "Suicide", pos: [], neg: [1, 2, 6, 7, 8, 12] },
-  death: { name: "Death", pos: [], neg: [2, 6, 7, 8, 12] },
+  // --- CHILDREN ---
+  child: { name: "Child Birth", pos: [2, 5, 11], support: [3, 7, 9], neg: [1, 4, 8, 10, 12], note: "Karaka: Jupiter" },
 
-  travel: { name: "Travel Abroad", pos: [3, 9, 12], neg: [2, 4, 8, 11] },
-  staying_in_foreign: { name: "Staying in Foreign", pos: [1, 9, 12], neg: [] },
-  foreign_travel_restriction: { name: "Foreign Travel vs Restriction", pos: [3, 7, 9, 12], neg: [2, 6, 8, 11] },
-  foreign_pleasure_trips: { name: "Foreign Pleasure Trips", pos: [5, 9, 11, 12], neg: [] },
-  foreign_going_for_job: { name: "Foreign Going for Job", pos: [6, 9, 10, 11, 12], neg: [] },
-  foreign_going_for_business: { name: "Foreign Going for Business", pos: [7, 9, 10], neg: [] },
-  foreign_going_for_medical: { name: "Foreign Going for Medical Treatment", pos: [1, 6, 9, 12], neg: [] },
-  foreign_going_for_citizenship: { name: "Foreign Going for Citizenship", pos: [7, 9, 10, 12], neg: [] },
-  foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], neg: [] },
-  pilgrimage: { name: "Pilgrimage", pos: [3, 5, 9, 11], neg: [] },
+  // --- INCOME, WEALTH & FINANCE ---
+  income: { name: "Income", pos: [2, 6, 10, 11], support: [7], neg: [5, 8, 9, 12], note: "" },
+  financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], support: [], neg: [5, 8, 9, 12], note: "" },
+  sudden_loss: { name: "Sudden Loss", pos: [], support: [], neg: [2, 5, 8, 12], note: "" },
 
-  court: { name: "Court Cases", pos: [6, 10, 11], neg: [1, 3, 6, 8, 12] },
-  court_case_win: { name: "Court Case Win", pos: [2, 6, 7, 11], neg: [] },
-  court_case_lost: { name: "Court Case Lost", pos: [5, 7, 8, 12], neg: [] },
-  case_close_settlement_payment: { name: "Case Close Settlement Payment", pos: [5, 7, 8, 11], neg: [] },
-  case_compromise: { name: "Case Compromise", pos: [3, 7, 9, 11], neg: [] },
-  litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], neg: [] },
-  litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [2, 6, 7, 12], neg: [] },
-  financial_litigations: { name: "Financial Litigations", pos: [2, 7, 5, 12], neg: [] },
-  property_litigations: { name: "Property Litigations", pos: [4, 7, 8, 11], neg: [] },
-  relationship_litigations: { name: "Relationship Litigations", pos: [1, 6, 7, 12], neg: [] },
-  revenue_litigations: { name: "Revenue Litigations", pos: [3, 4, 8, 12], neg: [] },
-  false_allegation: { name: "False Allegation", pos: [1, 3, 7, 8], neg: [] },
-  others_defeat: { name: "Others Defeat", pos: [6, 7, 11], neg: [] },
-  income_tax_raid: { name: "Income Tax Raid", pos: [10, 12], neg: [] },
-  troubles_from_frauds: { name: "Troubles from Frauds", pos: [3, 8], neg: [] },
-  arrest_by_police: { name: "Arrest by Police", pos: [3, 8, 12], neg: [] },
+  // --- PROPERTY & VEHICLES ---
+  property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], support: [6, 8], neg: [3, 5, 10], note: "" },
+  home_location_change: { name: "Home Location Change", pos: [], support: [], neg: [1, 3, 12], note: "" },
 
-  politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], neg: [4, 8, 12] },
-  political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], neg: [] },
-  spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], neg: [] },
-  name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], neg: [1, 8, 12] },
-  negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], neg: [2, 8, 12] },
+  // --- HEALTH & LONGEVITY ---
+  health: { name: "Health", pos: [1, 5, 11], support: [3], neg: [4, 6, 8, 12], note: "" },
+  recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 9, 11], support: [], neg: [1, 6, 8, 12], note: "" },
+  long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], support: [], neg: [2, 6, 7, 9, 11, 12], note: "" },
+  short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], support: [], neg: [1, 3, 5, 8, 10], note: "" },
+  long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 9], support: [], neg: [2, 6, 7, 8, 11, 12], note: "" },
+  long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 11], support: [9], neg: [2, 4, 6, 7, 8, 12], note: "" },
+  long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], support: [9], neg: [2, 4, 6, 7, 12], note: "" },
+  accident: { name: "Accident", pos: [], support: [], neg: [6, 8, 12], note: "" },
+  rape: { name: "Rape", pos: [], support: [], neg: [5, 8, 12], note: "" },
+  murder: { name: "Murder", pos: [], support: [], neg: [2, 7, 8, 12], note: "" },
+  suicide_death: { name: "Suicide & Death", pos: [], support: [], neg: [1, 2, 6, 7, 8, 12], note: "" },
 
-  missing_person_return: { name: "Missing Person Return vs No Return or Dead", pos: [4, 7, 8, 11], neg: [3, 4, 5, 8, 12] },
-  theft_recovery_loss: { name: "Theft Recovery Items vs Loss", pos: [2, 6, 7, 11], neg: [2, 5, 7, 8, 12] },
-  
-  all_round_success_11th: { name: "All Round Success 11th", pos: [1, 2, 3, 6, 10, 11], neg: [] },
-  unfulfilled_desires: { name: "Unfulfilled Desires", pos: [], neg: [5, 8, 11] }
+  // --- TRAVEL ---
+  travel: { name: "Travel Abroad", pos: [3, 9, 12], support: [7], neg: [2, 4, 8, 11], note: "" },
+  foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], support: [], neg: [], note: "" },
+
+  // --- COURT, LITIGATIONS & POLICE ---
+  court: { name: "Court Cases", pos: [6, 10, 11], support: [], neg: [1, 3, 8, 12], note: "" },
+  court_case: { name: "Court Case Win", pos: [2, 6, 7, 11], support: [], neg: [5, 8, 12], note: "" },
+  litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], support: [], neg: [], note: "" },
+  litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [], support: [], neg: [2, 6, 7, 12], note: "" },
+  financial_litigations: { name: "Financial Litigations", pos: [], support: [], neg: [2, 5, 7, 12], note: "" },
+  property_litigations: { name: "Property Litigations", pos: [], support: [], neg: [4, 7, 8, 11], note: "" },
+  relationship_litigations: { name: "Relationship Litigations", pos: [], support: [], neg: [1, 6, 7, 12], note: "" },
+  revenue_litigations: { name: "Revenue Litigations", pos: [], support: [], neg: [3, 4, 8, 12], note: "" },
+  false_allegation: { name: "False Allegation", pos: [], support: [], neg: [1, 3, 7, 8], note: "" },
+  others_defeat: { name: "Others Defeat", pos: [], support: [], neg: [6, 7, 11], note: "" },
+  income_tax_raid: { name: "Income Tax Raid", pos: [], support: [], neg: [10, 12], note: "" },
+  troubles_from_frauds: { name: "Troubles from Frauds", pos: [], support: [], neg: [3, 8], note: "Karaka: Rahu" },
+  arrest_by_police: { name: "Arrest by Police", pos: [], support: [], neg: [3, 8, 12], note: "Karaka: Rahu, Mars" },
+
+  // --- POLITICS, FAME & NEGOTIATION ---
+  politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], support: [], neg: [4, 8, 12], note: "" },
+  political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], support: [], neg: [], note: "" },
+  spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], support: [], neg: [], note: "" },
+  name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], support: [], neg: [1, 8, 12], note: "" },
+  film_success: { name: "Film Success", pos: [5, 6, 7, 10, 11], support: [], neg: [8, 12], note: "" },
+  negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], support: [], neg: [2, 8, 12], note: "" }
 };
 
 
@@ -8174,27 +8340,72 @@ function buildDashaBukthiAntaraMixer() {
 
 
 
-    Object.keys(mixerTemplatesMap).forEach(key => {
+
+    Object.keys(UNIFIED_TEMPLATES).forEach(key => {
         let opt = document.createElement("option");
         opt.value = key;
-        opt.textContent = mixerTemplatesMap[key].name;
+        opt.textContent = UNIFIED_TEMPLATES[key].name;
         if (key === window.__dba3SelectedTemplate) opt.selected = true;
         tSelect.appendChild(opt);
     });
 
+    tSelect.id = "dba3TemplateSelect"; // Assign an ID to restore focus
+    
     tSelect.onchange = (e) => {
         let val = e.target.value;
         window.__dba3SelectedTemplate = val;
         window.__dba3ActiveHighlightNums.clear();
         window.__dba3NegativeHighlightNums.clear();
-        if (val !== "manual") {
-            mixerTemplatesMap[val].pos.forEach(n => window.__dba3ActiveHighlightNums.add(n));
-            mixerTemplatesMap[val].neg.forEach(n => window.__dba3NegativeHighlightNums.add(n));
+        window.__dba3SupportHighlightNums.clear();
+        
+        if (val !== "manual" && UNIFIED_TEMPLATES[val]) {
+            UNIFIED_TEMPLATES[val].pos.forEach(n => window.__dba3ActiveHighlightNums.add(n));
+            UNIFIED_TEMPLATES[val].neg.forEach(n => window.__dba3NegativeHighlightNums.add(n));
+            if(UNIFIED_TEMPLATES[val].support) {
+                UNIFIED_TEMPLATES[val].support.forEach(n => window.__dba3SupportHighlightNums.add(n));
+            }
         }
         buildDashaBukthiAntaraMixer();
+
+        // Restore focus immediately after the UI rebuilds
+        setTimeout(() => {
+            let restoredSelect = document.getElementById("dba3TemplateSelect");
+            if (restoredSelect) restoredSelect.focus();
+        }, 0);
     };
+
+    // Keyboard Infinite Scrolling for the Dropdown
+    tSelect.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault(); 
+            let currentIndex = tSelect.selectedIndex;
+            let total = tSelect.options.length;
+
+            if (e.key === "ArrowDown") {
+                currentIndex = (currentIndex + 1) % total; 
+            } else if (e.key === "ArrowUp") {
+                currentIndex = (currentIndex - 1 + total) % total; 
+            }
+
+            tSelect.selectedIndex = currentIndex;
+            tSelect.dispatchEvent(new Event('change')); // Trigger the change manually
+        }
+    });
+
     templateLabel.appendChild(tSelect);
     templateRow.appendChild(templateLabel);
+
+    // --- ADD NOTE DISPLAY ---
+    let noteDisplayWrap = document.createElement("div");
+    noteDisplayWrap.style = "width:100%; text-align:center; padding-top:8px;";
+    let currentNote = UNIFIED_TEMPLATES[window.__dba3SelectedTemplate]?.note || "";
+    if (currentNote) {
+        noteDisplayWrap.innerHTML = `<span style="color:#10b981; font-weight:900; font-size:14px; background:#010a08; padding:4px 12px; border:1px solid #10b981; border-radius:4px;">NOTE: ${currentNote}</span>`;
+    }
+    templateRow.appendChild(noteDisplayWrap);
+	
+	
+	
 
     let hideUnLabel = document.createElement("label");
     hideUnLabel.style = "font-weight:900; color:#d4af37; cursor:pointer; display:inline-flex; align-items:center; gap:6px;";
@@ -8254,6 +8465,52 @@ function buildDashaBukthiAntaraMixer() {
         posRow.appendChild(btn);
     }
     hlWrap.appendChild(posRow);
+	
+	
+	// --- SUPPORTIVE ROW ---
+    let supRow = document.createElement("div");
+    supRow.style = "display:flex; justify-content:center; gap:10px; flex-wrap:wrap; align-items:center;";
+    
+    let supLabel = document.createElement("span");
+    supLabel.innerHTML = "SUPPORTIVE :";
+    supLabel.style = "color:#38bdf8; font-weight:900; font-size:16px; margin-right:5px; min-width:100px; text-align:right;";
+    supRow.appendChild(supLabel);
+
+    let clearSupBtn = document.createElement("button");
+    clearSupBtn.innerHTML = "🧹 Clear";
+    clearSupBtn.style = "background:linear-gradient(135deg, #475569, #1e293b); color:#38bdf8; border:1px solid #38bdf8; padding:6px 14px; font-weight:900; cursor:pointer; border-radius:4px; margin-right:15px;";
+    clearSupBtn.onclick = () => {
+        window.__dba3SupportHighlightNums.clear();
+        window.__dba3SelectedTemplate = "manual";
+        buildDashaBukthiAntaraMixer();
+    };
+    supRow.appendChild(clearSupBtn);
+
+    for (let i = 1; i <= 12; i++) {
+        let btn = document.createElement("button");
+        btn.innerHTML = i;
+        let isActive = window.__dba3SupportHighlightNums.has(i);
+        
+        if (isActive) {
+            btn.style = "background:#38bdf8; color:#000; font-weight:900; border:2px solid #000; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #38bdf8;";
+        } else {
+            btn.style = "background:#010a08; color:#10b981; font-weight:900; border:1px solid #10b981; padding:6px 14px; cursor:pointer; border-radius:4px;";
+        }
+        
+        btn.onclick = () => {
+            if (window.__dba3SupportHighlightNums.has(i)) {
+                window.__dba3SupportHighlightNums.delete(i);
+            } else {
+                window.__dba3SupportHighlightNums.add(i);
+                window.__dba3NegativeHighlightNums.delete(i); 
+                window.__dba3ActiveHighlightNums.delete(i); 
+            }
+            window.__dba3SelectedTemplate = "manual";
+            buildDashaBukthiAntaraMixer();
+        };
+        supRow.appendChild(btn);
+    }
+    hlWrap.appendChild(supRow);
 
     // --- NEGATIVE ROW ---
     let negRow = document.createElement("div");
@@ -8311,6 +8568,8 @@ function buildDashaBukthiAntaraMixer() {
                 
                 if (window.__dba3NegativeHighlightNums.has(n)) {
                     return `<span style="background-color:#8b0000; color:#ffffff; padding:2px 5px; border:1px solid #ffffff; border-radius:4px; font-weight:500; text-shadow:none; box-shadow: 0 0 5px rgba(255, 255, 255, 0.6); display:inline-block; margin: 2px 2px; line-height: 1;">${match}</span>`;
+                } else if (window.__dba3SupportHighlightNums.has(n)) {
+                    return `<span style="background-color:#000; color:#38bdf8; padding:2px 5px; border:1px solid #38bdf8; border-radius:4px; font-weight:500; text-shadow:none; box-shadow: 0 0 4px rgba(56, 189, 248, 0.5); display:inline-block; margin: 2px 2px; line-height: 1;">${match}</span>`;
                 } else if (window.__dba3ActiveHighlightNums.has(n)) {
                     return `<span style="background-color:#000; color:#facc15; padding:2px 5px; border:1px solid #facc15; border-radius:4px; font-weight:500; text-shadow:none; box-shadow: 0 0 4px rgba(250, 204, 21, 0.5); display:inline-block; margin: 2px 2px; line-height: 1;">${match}</span>`;
                 }
@@ -8335,23 +8594,29 @@ function buildDashaBukthiAntaraMixer() {
         return formattedParts.join("<span style='color:#ecfdf5; margin: 0 4px; font-weight: 500; opacity: 0.6;'>,</span>");
     }
 
-    function buildSplitBlock(ent, isSplitView2, isStarlord = false, removeOccState = false) {
+    
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	function buildSplitBlock(ent, isSplitView2, isStarlord = false, removeOccState = false) {
         if(!ent) return "";
         let h = getPlanetHouse(ent);
         
         let nums = [];
         let ownedHouses = []; 
+        let aspConjNums = []; 
+        let aspConjPlacedHouses = new Set(); // Tracks placed houses for Ra/Ke aspects
         
         let isAddDispositor = window.__dba3AddDispositor;
         let skipRaKeEnt = !isAddDispositor && (ent === "Rahu" || ent === "Ketu");
-
-        if ((ent === "Rahu" || ent === "Ketu") && isStarlord && !isAddDispositor) {
-            return `${h}`;
-        }
-        
-        if ((ent === "Rahu" || ent === "Ketu") && !isStarlord && !isAddDispositor) {
-            return `${h}`;
-        }
 
         if (ent === "Rahu" || ent === "Ketu") {
             let sign = getPlanetSign(ent);
@@ -8395,6 +8660,25 @@ function buildDashaBukthiAntaraMixer() {
                 if(c && c !== "-") c.split(",").forEach(x => nums.push(parseInt(x)));
             }
         }
+        
+        // NEW: Safely extract and remember the placed house (the 1st number)
+        function extractAspConj(text) {
+            if (!text || text === "-") return;
+            let matches = text.match(/\((.*?)\)/g) || [];
+            matches.forEach(m => {
+                let inside = m.replace(/[()]/g, "");
+                let parts = inside.split(",");
+                if (parts.length > 0 && parts[0].trim() !== "") {
+                    aspConjPlacedHouses.add(parseInt(parts[0], 10)); 
+                }
+                parts.forEach(n => aspConjNums.push(parseInt(n, 10)));
+            });
+        }
+
+        if (window.__dba3AddRaKeAspectedBy && (ent === "Rahu" || ent === "Ketu")) {
+            extractAspConj(getAspectedBy(ent));
+            extractAspConj(getConjunctPlanets(ent));
+        }
 
         nums = nums.filter(x => !isNaN(x));
         nums = [...new Set(nums)];
@@ -8413,12 +8697,67 @@ function buildDashaBukthiAntaraMixer() {
         }
 
         nums.sort((a,b) => a - b);
-        if(!h) return nums.join(",") || "-";
-        if(nums.length === 0) return `${h}`;
-        if ((ent === "Rahu" || ent === "Ketu") && nums.length === 1 && nums[0] === parseInt(h)) return `${h}`;
         
-        return `${h}-${nums.join(",")}`;
+        let blockStr = "";
+
+        if (isSplitView2) {
+            let hInt = h ? parseInt(h) : null;
+            let placedCircled = false;
+            
+            let mappedNums = nums.map(n => {
+                if (n === hInt && !placedCircled) {
+                    placedCircled = true;
+                    return `<span style="border: 1px solid #10b981; border-radius: 999px; padding: 1px 6px;">${n}</span>`;
+                }
+                return n;
+            });
+            
+            if (mappedNums.length === 0) {
+                blockStr = h ? `<span style="border: 1px solid #10b981; border-radius: 999px; padding: 1px 6px;">${h}</span>` : "-";
+            } else {
+                blockStr = mappedNums.join(",");
+            }
+            
+        } else {
+            if(!h) blockStr = nums.join(",") || "-";
+            else if(nums.length === 0) blockStr = `${h}`;
+            else if ((ent === "Rahu" || ent === "Ketu") && nums.length === 1 && nums[0] === parseInt(h)) blockStr = `${h}`;
+            else blockStr = `${h} - ${nums.join(",")}`;
+        }
+
+        // NEW: Check against tracked placed houses and draw the circle for Split View 2
+        aspConjNums = aspConjNums.filter(x => !isNaN(x));
+        aspConjNums = [...new Set(aspConjNums)].sort((a,b) => a - b);
+        
+        if (aspConjNums.length > 0) {
+            if (isSplitView2) {
+                let formattedAspConj = aspConjNums.map(n => {
+                    if (aspConjPlacedHouses.has(n)) {
+                        aspConjPlacedHouses.delete(n); // Ensure it's circled only once
+                        return `<span style="border: 1px solid #10b981; border-radius: 999px; padding: 1px 6px;">${n}</span>`;
+                    }
+                    return n;
+                });
+                blockStr += ` + ${formattedAspConj.join(",")}`;
+            } else {
+                blockStr += ` + ${aspConjNums.join(",")}`;
+            }
+        }
+        
+        return blockStr;
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
     function getMixer3Nums(p, showP, showS, removeOccState = false) {
         let isAddDispositor = window.__dba3AddDispositor;
@@ -8481,6 +8820,19 @@ function buildDashaBukthiAntaraMixer() {
                     if (!skipRaKeP && (allowRaKe || (p !== "Rahu" && p !== "Ketu"))) {
                         let c = getCuspalConjunct(p);
                         if(c && c!=="-") c.split(",").forEach(x=>nums.push(parseInt(x)));
+                    }
+                }
+
+                if (window.__dba3AddRaKeAspectedBy && (p === "Rahu" || p === "Ketu")) {
+                    let txtAsp = getAspectedBy(p);
+                    if (txtAsp && txtAsp !== "-") {
+                        let matches = txtAsp.match(/\((.*?)\)/g) || [];
+                        matches.forEach(x => x.replace(/[()]/g,"").split(",").forEach(n => nums.push(parseInt(n))));
+                    }
+                    let txtConj = getConjunctPlanets(p);
+                    if (txtConj && txtConj !== "-") {
+                        let matches = txtConj.match(/\((.*?)\)/g) || [];
+                        matches.forEach(x => x.replace(/[()]/g,"").split(",").forEach(n => nums.push(parseInt(n))));
                     }
                 }
             }
@@ -8587,13 +8939,13 @@ function buildDashaBukthiAntaraMixer() {
             tr.style.background = "#010a08"; 
             tr.innerHTML = `
                 <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center; line-height: 1.8;">
-                    ${getPlanetLabel(effectiveDashaPlanet)} - <span style="color:#38bdf8;">${dNums}</span>
+                    ${getPlanetLabel(effectiveDashaPlanet)} &nbsp;&nbsp;-&nbsp;&nbsp; <span style="color:#38bdf8;">${dNums}</span>
                 </td>
                 <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center; line-height: 1.8;">
-                    ${getPlanetLabel(bPlanet)} - <span style="color:#f472b6;">${bNums}</span>
+                    ${getPlanetLabel(bPlanet)} &nbsp;&nbsp;-&nbsp;&nbsp; <span style="color:#f472b6;">${bNums}</span>
                 </td>
                 <td style="border:1px solid #10b981; padding:6px; font-weight:500; text-align:center; line-height: 1.8;">
-                    ${getPlanetLabel(aPlanet)} - <span style="color:#a855f7;">${aNums}</span>
+                    ${getPlanetLabel(aPlanet)} &nbsp;&nbsp;-&nbsp;&nbsp; <span style="color:#a855f7;">${aNums}</span>
                 </td>
             `;
             table.appendChild(tr);
@@ -9173,6 +9525,7 @@ if (typeof window.__nadiDbaActiveLevel === 'undefined') window.__nadiDbaActiveLe
 
 if (typeof window.__nadiDbaPosNums === 'undefined') window.__nadiDbaPosNums = new Set();
 if (typeof window.__nadiDbaNegNums === 'undefined') window.__nadiDbaNegNums = new Set();
+if (typeof window.__nadiDbaSupportNums === 'undefined') window.__nadiDbaSupportNums = new Set(); // NEW SUPPORTIVE SET
 if (typeof window.__nadiDbaTemplate === 'undefined') window.__nadiDbaTemplate = "manual";
 
 // Independent Hide Unselected
@@ -9191,8 +9544,9 @@ if (typeof window.__nadiDbaRaKeAspectConj === 'undefined') window.__nadiDbaRaKeA
 if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = false; 
 
 // Hide/Show Options for Sub and Sub-Sub Levels
-if (typeof window.__nadiDbaHideStarSub === 'undefined') window.__nadiDbaHideStarSub = false; // Default OFF (shown)
-if (typeof window.__nadiDbaHideSubSub === 'undefined') window.__nadiDbaHideSubSub = true; // Default ON (hidden)
+if (typeof window.__nadiDbaHideEverything === 'undefined') window.__nadiDbaHideEverything = true; // Default ON (hidden)
+if (typeof window.__nadiDbaHideStarSub === 'undefined') window.__nadiDbaHideStarSub = false; // Default ON (hidden)
+if (typeof window.__nadiDbaHideSubSub === 'undefined') window.__nadiDbaHideSubSub = false; // Default ON (hidden)
 
 // NEW: Untenented Logic State
 if (typeof window.__nadiDbaUntenented === 'undefined') window.__nadiDbaUntenented = false; // Default OFF
@@ -9262,28 +9616,105 @@ function buildNadiDbaMixer() {
     let tSelect = document.createElement("select");
     tSelect.style = "background:#010a08; color:#ecfdf5; border:1px solid #10b981; padding:4px 8px; font-weight:900; cursor:pointer;";
 
-    const mixerTemplatesMap = {
-        manual: { name: "Manual Entry", pos: [], neg: [] },
-        even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], neg: [1, 3, 5, 7, 9, 11] },
-        education: { name: "Education", pos: [4, 5, 9, 11], neg: [3, 6, 8, 12] },
-        career: { name: "Career & Business", pos: [2, 6, 10, 11], neg: [5, 8, 12] },
-        interview_pass_fail: { name: "Interview Pass Fail", pos: [3, 5, 11], neg: [3, 5, 12] },
-        marriage: { name: "Marriage", pos: [2, 7, 11], neg: [1, 4, 6, 8, 10, 12] },
-        no_marriage: { name: "NO Marriage", pos: [6, 8, 12], neg: [5] },
-        love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], neg: [1, 4, 6, 8, 12] },
-        child: { name: "Child Birth", pos: [2, 5, 11], neg: [1, 4, 6, 8, 10, 12] },
-        income: { name: "Income", pos: [2, 6, 10, 11], neg: [5, 8, 9, 12] },
-        sudden_gain_richness: { name: "Sudden Gain Richness", pos: [2, 6, 8, 10, 11], neg: [] },
-        property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], neg: [3, 5, 10] },
-        health: { name: "Health", pos: [1, 5, 11], neg: [4, 6, 8, 12] },
-        travel: { name: "Travel Abroad", pos: [3, 9, 12], neg: [2, 4, 8, 11] },
-        court: { name: "Court Cases", pos: [6, 10, 11], neg: [1, 3, 6, 8, 12] }
-    };
+   tSelect.id = "nadiDbaTemplateSelect"; // Assign an ID to restore focus
 
-    Object.keys(mixerTemplatesMap).forEach(key => {
+    
+	
+	
+	
+	
+	
+	
+	
+const UNIFIED_TEMPLATES = {
+  // --- DEFAULT & BASICS ---
+  manual: { name: "Manual Entry", pos: [], support: [], neg: [], note: "" },
+  even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], support: [8, 12], neg: [1, 3, 5, 7, 9, 11], note: "" },
+
+  // --- EDUCATION ---
+  education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
+  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
+
+  // --- CAREER, JOB & BUSINESS ---
+  career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
+  job_change: { name: "Job Change", pos: [3, 5, 6, 9], support: [], neg: [], note: "" },
+  transfer: { name: "Transfer", pos: [3, 10, 12], support: [], neg: [], note: "" },
+  suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], support: [], neg: [1, 5, 8, 9, 12], note: "" },
+
+  // --- MARRIAGE & RELATIONSHIPS ---
+  marriage: { name: "Marriage", pos: [2, 7, 11], support: [3, 5, 9], neg: [1, 4, 6, 8, 10, 12], note: "Karaka: Venus" },
+  love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], support: [], neg: [1, 4, 6, 8, 12], note: "" },
+  second_marriage: { name: "Second Marriage", pos: [2, 5, 7, 9, 11], support: [], neg: [], note: "" },
+
+  // --- CHILDREN ---
+  child: { name: "Child Birth", pos: [2, 5, 11], support: [3, 7, 9], neg: [1, 4, 8, 10, 12], note: "Karaka: Jupiter" },
+
+  // --- INCOME, WEALTH & FINANCE ---
+  income: { name: "Income", pos: [2, 6, 10, 11], support: [7], neg: [5, 8, 9, 12], note: "" },
+  financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], support: [], neg: [5, 8, 9, 12], note: "" },
+  sudden_loss: { name: "Sudden Loss", pos: [], support: [], neg: [2, 5, 8, 12], note: "" },
+
+  // --- PROPERTY & VEHICLES ---
+  property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], support: [6, 8], neg: [3, 5, 10], note: "" },
+  home_location_change: { name: "Home Location Change", pos: [], support: [], neg: [1, 3, 12], note: "" },
+
+  // --- HEALTH & LONGEVITY ---
+  health: { name: "Health", pos: [1, 5, 11], support: [3], neg: [4, 6, 8, 12], note: "" },
+  recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 9, 11], support: [], neg: [1, 6, 8, 12], note: "" },
+  long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], support: [], neg: [2, 6, 7, 9, 11, 12], note: "" },
+  short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], support: [], neg: [1, 3, 5, 8, 10], note: "" },
+  long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 9], support: [], neg: [2, 6, 7, 8, 11, 12], note: "" },
+  long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 11], support: [9], neg: [2, 4, 6, 7, 8, 12], note: "" },
+  long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], support: [9], neg: [2, 4, 6, 7, 12], note: "" },
+  accident: { name: "Accident", pos: [], support: [], neg: [6, 8, 12], note: "" },
+  rape: { name: "Rape", pos: [], support: [], neg: [5, 8, 12], note: "" },
+  murder: { name: "Murder", pos: [], support: [], neg: [2, 7, 8, 12], note: "" },
+  suicide_death: { name: "Suicide & Death", pos: [], support: [], neg: [1, 2, 6, 7, 8, 12], note: "" },
+
+  // --- TRAVEL ---
+  travel: { name: "Travel Abroad", pos: [3, 9, 12], support: [7], neg: [2, 4, 8, 11], note: "" },
+  foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], support: [], neg: [], note: "" },
+
+  // --- COURT, LITIGATIONS & POLICE ---
+  court: { name: "Court Cases", pos: [6, 10, 11], support: [], neg: [1, 3, 8, 12], note: "" },
+  court_case: { name: "Court Case Win", pos: [2, 6, 7, 11], support: [], neg: [5, 8, 12], note: "" },
+  litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], support: [], neg: [], note: "" },
+  litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [], support: [], neg: [2, 6, 7, 12], note: "" },
+  financial_litigations: { name: "Financial Litigations", pos: [], support: [], neg: [2, 5, 7, 12], note: "" },
+  property_litigations: { name: "Property Litigations", pos: [], support: [], neg: [4, 7, 8, 11], note: "" },
+  relationship_litigations: { name: "Relationship Litigations", pos: [], support: [], neg: [1, 6, 7, 12], note: "" },
+  revenue_litigations: { name: "Revenue Litigations", pos: [], support: [], neg: [3, 4, 8, 12], note: "" },
+  false_allegation: { name: "False Allegation", pos: [], support: [], neg: [1, 3, 7, 8], note: "" },
+  others_defeat: { name: "Others Defeat", pos: [], support: [], neg: [6, 7, 11], note: "" },
+  income_tax_raid: { name: "Income Tax Raid", pos: [], support: [], neg: [10, 12], note: "" },
+  troubles_from_frauds: { name: "Troubles from Frauds", pos: [], support: [], neg: [3, 8], note: "Karaka: Rahu" },
+  arrest_by_police: { name: "Arrest by Police", pos: [], support: [], neg: [3, 8, 12], note: "Karaka: Rahu, Mars" },
+
+  // --- POLITICS, FAME & NEGOTIATION ---
+  politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], support: [], neg: [4, 8, 12], note: "" },
+  political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], support: [], neg: [], note: "" },
+  spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], support: [], neg: [], note: "" },
+  name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], support: [], neg: [1, 8, 12], note: "" },
+  film_success: { name: "Film Success", pos: [5, 6, 7, 10, 11], support: [], neg: [8, 12], note: "" },
+  negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], support: [], neg: [2, 8, 12], note: "" }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Object.keys(UNIFIED_TEMPLATES).forEach(key => {
         let opt = document.createElement("option");
         opt.value = key;
-        opt.textContent = mixerTemplatesMap[key].name;
+        opt.textContent = UNIFIED_TEMPLATES[key].name;
         if (key === window.__nadiDbaTemplate) opt.selected = true;
         tSelect.appendChild(opt);
     });
@@ -9293,14 +9724,53 @@ function buildNadiDbaMixer() {
         window.__nadiDbaTemplate = val;
         window.__nadiDbaPosNums.clear();
         window.__nadiDbaNegNums.clear();
-        if (val !== "manual" && mixerTemplatesMap[val]) {
-            mixerTemplatesMap[val].pos.forEach(n => window.__nadiDbaPosNums.add(n));
-            mixerTemplatesMap[val].neg.forEach(n => window.__nadiDbaNegNums.add(n));
+        window.__nadiDbaSupportNums.clear();
+        
+        if (val !== "manual" && UNIFIED_TEMPLATES[val]) {
+            UNIFIED_TEMPLATES[val].pos.forEach(n => window.__nadiDbaPosNums.add(n));
+            UNIFIED_TEMPLATES[val].neg.forEach(n => window.__nadiDbaNegNums.add(n));
+            if(UNIFIED_TEMPLATES[val].support) {
+                UNIFIED_TEMPLATES[val].support.forEach(n => window.__nadiDbaSupportNums.add(n));
+            }
         }
         buildNadiDbaMixer();
+
+        // Restore focus immediately after the UI rebuilds
+        setTimeout(() => {
+            let restoredSelect = document.getElementById("nadiDbaTemplateSelect");
+            if (restoredSelect) restoredSelect.focus();
+        }, 0);
     };
+
+    // Keyboard Infinite Scrolling for the Dropdown
+    tSelect.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault(); 
+            let currentIndex = tSelect.selectedIndex;
+            let total = tSelect.options.length;
+
+            if (e.key === "ArrowDown") {
+                currentIndex = (currentIndex + 1) % total; 
+            } else if (e.key === "ArrowUp") {
+                currentIndex = (currentIndex - 1 + total) % total; 
+            }
+
+            tSelect.selectedIndex = currentIndex;
+            tSelect.dispatchEvent(new Event('change')); // Trigger the change manually
+        }
+    });
+
     templateLabel.appendChild(tSelect);
     templateRow.appendChild(templateLabel);
+
+    // --- ADD NOTE DISPLAY ---
+    let noteDisplayWrap = document.createElement("div");
+    noteDisplayWrap.style = "width:100%; text-align:center; padding-top:8px;";
+    let currentNote = UNIFIED_TEMPLATES[window.__nadiDbaTemplate]?.note || "";
+    if (currentNote) {
+        noteDisplayWrap.innerHTML = `<span style="color:#10b981; font-weight:900; font-size:14px; background:#010a08; padding:4px 12px; border:1px solid #10b981; border-radius:4px;">NOTE: ${currentNote}</span>`;
+    }
+    templateRow.appendChild(noteDisplayWrap);
 
     let hideDLabel = document.createElement("label");
     hideDLabel.style = "font-weight:900; color:#38bdf8; cursor:pointer; display:flex; align-items:center; gap:5px;";
@@ -9353,6 +9823,36 @@ function buildNadiDbaMixer() {
         posRow.appendChild(btn);
     }
     hlWrap.appendChild(posRow);
+	
+	// --- SUPPORTIVE ROW ---
+    let supRow = document.createElement("div");
+    supRow.style = "display:flex; justify-content:center; gap:10px; flex-wrap:wrap; align-items:center;";
+    let supLabel = document.createElement("span");
+    supLabel.innerHTML = "SUPPORTIVE :";
+    supLabel.style = "color:#38bdf8; font-weight:900; font-size:16px; margin-right:5px; min-width:100px; text-align:right;";
+    supRow.appendChild(supLabel);
+
+    let clearSupBtn = document.createElement("button");
+    clearSupBtn.innerHTML = "🧹 Clear";
+    clearSupBtn.style = "background:linear-gradient(135deg, #475569, #1e293b); color:#38bdf8; border:1px solid #38bdf8; padding:6px 14px; font-weight:900; cursor:pointer; border-radius:4px; margin-right:15px;";
+    clearSupBtn.onclick = () => { window.__nadiDbaSupportNums.clear(); window.__nadiDbaTemplate = "manual"; buildNadiDbaMixer(); };
+    supRow.appendChild(clearSupBtn);
+
+    for (let i = 1; i <= 12; i++) {
+        let btn = document.createElement("button");
+        btn.innerHTML = i;
+        btn.style = window.__nadiDbaSupportNums.has(i) 
+            ? "background:#38bdf8; color:#000; font-weight:900; border:2px solid #000; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #38bdf8;"
+            : "background:#010a08; color:#10b981; font-weight:900; border:1px solid #10b981; padding:6px 14px; cursor:pointer; border-radius:4px;";
+        
+        btn.onclick = () => {
+            if (window.__nadiDbaSupportNums.has(i)) window.__nadiDbaSupportNums.delete(i);
+            else { window.__nadiDbaSupportNums.add(i); window.__nadiDbaNegNums.delete(i); window.__nadiDbaPosNums.delete(i); }
+            window.__nadiDbaTemplate = "manual"; buildNadiDbaMixer();
+        };
+        supRow.appendChild(btn);
+    }
+    hlWrap.appendChild(supRow);
 
     // Neg Row
     let negRow = document.createElement("div");
@@ -9472,6 +9972,24 @@ function buildNadiDbaMixer() {
     showPlacedLbl.appendChild(document.createTextNode(" Show Placed"));
     optionsWrap.appendChild(showPlacedLbl);
 
+    // --- HIDE EVERYTHING CHECKBOX ---
+    let hideEverythingLbl = document.createElement("label");
+    hideEverythingLbl.style = "font-weight:900; color:#fb923c; cursor:pointer; font-size:15px; border:1px solid #fb923c; padding:4px 10px; border-radius:4px; background:#010a08;";
+    let hideEverythingChk = document.createElement("input");
+    hideEverythingChk.type = "checkbox";
+    hideEverythingChk.checked = window.__nadiDbaHideEverything;
+    hideEverythingChk.onchange = (e) => { 
+        window.__nadiDbaHideEverything = e.target.checked; 
+        if(e.target.checked) {
+            window.__nadiDbaHideStarSub = true;
+            window.__nadiDbaHideSubSub = true;
+        }
+        buildNadiDbaMixer(); 
+    };
+    hideEverythingLbl.appendChild(hideEverythingChk);
+    hideEverythingLbl.appendChild(document.createTextNode(" Hide Everything"));
+    optionsWrap.appendChild(hideEverythingLbl);
+
     // --- HIDE ⭐ SUBLORD CHECKBOX ---
     let hideStarSubLbl = document.createElement("label");
     hideStarSubLbl.style = "font-weight:900; color:#ef4444; cursor:pointer; font-size:15px; border:1px solid #ef4444; padding:4px 10px; border-radius:4px; background:#010a08;";
@@ -9480,6 +9998,11 @@ function buildNadiDbaMixer() {
     hideStarSubChk.checked = window.__nadiDbaHideStarSub;
     hideStarSubChk.onchange = (e) => { 
         window.__nadiDbaHideStarSub = e.target.checked; 
+        if(e.target.checked) {
+            window.__nadiDbaHideSubSub = true;
+        } else {
+            window.__nadiDbaHideEverything = false;
+        }
         buildNadiDbaMixer(); 
     };
     hideStarSubLbl.appendChild(hideStarSubChk);
@@ -9494,6 +10017,10 @@ function buildNadiDbaMixer() {
     hideSubSubChk.checked = window.__nadiDbaHideSubSub;
     hideSubSubChk.onchange = (e) => { 
         window.__nadiDbaHideSubSub = e.target.checked; 
+        if(!e.target.checked) {
+            window.__nadiDbaHideStarSub = false;
+            window.__nadiDbaHideEverything = false;
+        }
         buildNadiDbaMixer(); 
     };
     hideSubSubLbl.appendChild(hideSubSubChk);
@@ -9640,6 +10167,8 @@ function buildNadiDbaMixer() {
 
             if (window.__nadiDbaNegNums.has(n)) {
                 return `<span style="background-color:#8b0000; color:#ffffff; padding:1px 5px; border:1px solid #ffffff; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
+            } else if (window.__nadiDbaSupportNums.has(n)) {
+                return `<span style="background-color:#000; color:#38bdf8; padding:1px 5px; border:1px solid #38bdf8; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
             } else if (window.__nadiDbaPosNums.has(n)) {
                 return `<span style="background-color:#000; color:#facc15; padding:1px 5px; border:1px solid #facc15; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
             }
@@ -9755,7 +10284,7 @@ function buildNadiDbaMixer() {
                                 let rawStrNums = parts[1].split(",");
                                 let placedNum = parseInt(rawStrNums[0], 10); 
                                 
-                                let filteredNums = rawStrNums.map(Number).filter(n => !usedDispositorNumbers.has(n));
+                                let filteredNums = rawStrNums.map(Number);
                                 filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
                                 
                                 if (filteredNums.length > 0) {
@@ -9775,7 +10304,7 @@ function buildNadiDbaMixer() {
                                 let rawStrNums = parts[1].split(",");
                                 let placedNum = parseInt(rawStrNums[0], 10); 
                                 
-                                let filteredNums = rawStrNums.map(Number).filter(n => !usedDispositorNumbers.has(n));
+                                let filteredNums = rawStrNums.map(Number);
                                 filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
                                 
                                 if (filteredNums.length > 0) {
@@ -9834,10 +10363,11 @@ function buildNadiDbaMixer() {
         
         const sepHTML = `<div style="border-bottom:1px solid #475569; margin:6px 0;"></div>`;
         
-        let starSubHTML = !window.__nadiDbaHideStarSub ? makeLine("⭐ Sublord", starOfSub, c2, hideStarSubNums) : "";
+        let sublordHTML = !window.__nadiDbaHideEverything ? makeLine("Sublord", sub, c2, hideSubNums) : "";
+        let starSubHTML = (!window.__nadiDbaHideStarSub && !window.__nadiDbaHideEverything) ? makeLine("⭐ Sublord", starOfSub, c2, hideStarSubNums) : "";
         
         let subSubSectionHTML = "";
-        if (!window.__nadiDbaHideSubSub) {
+        if (!window.__nadiDbaHideSubSub && !window.__nadiDbaHideStarSub && !window.__nadiDbaHideEverything) {
             subSubSectionHTML = `
                 ${sepHTML}
                 ${makeLine("Sub-Sub", ss, c3, hideSsNums)}
@@ -9845,12 +10375,14 @@ function buildNadiDbaMixer() {
             `;
         }
 
+        let midSepHTML = (!window.__nadiDbaHideEverything) ? sepHTML : "";
+
         return `
             <div style="text-align:left; font-family:Consolas, monospace; font-size:14px; line-height:1.5; display:inline-block; width:100%;">
                 ${makeLine("Planet", planet, c1, hidePlanetNums)}
                 ${makeLine("Starlord", sl, c1, hideSlNums)}
-                ${sepHTML}
-                ${makeLine("Sublord", sub, c2, hideSubNums)}
+                ${midSepHTML}
+                ${sublordHTML}
                 ${starSubHTML}
                 ${subSubSectionHTML}
             </div>
