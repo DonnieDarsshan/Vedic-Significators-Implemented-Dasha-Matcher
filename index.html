@@ -1602,7 +1602,7 @@ function getConjunctPlanets(entity){
     let diff=Math.abs(abs-otherAbs);
     if(diff>180) diff=360-diff;
 
-    if(diff<=12){   // 12° orb
+    if(diff<=13){   // 13° orb
       let placedHouse = getPlanetHouse(other) || "-";
 
       if(other==="Rahu" || other==="Ketu"){
@@ -2666,10 +2666,10 @@ function clearFetchData() {
                 if (window.__dba3NegativeHighlightNums) window.__dba3NegativeHighlightNums.clear();
 
                 // --- RESET FOR NAKSHATRA NADI DBA MIXER ---
-                window.__nadiDbaExpanded = false;
-                window.__nadiDbaDasha = null;
-                window.__nadiDbaBukthi = null;
-                window.__nadiDbaAntara = null;
+				window.__nadiDbaExpanded = false;
+				window.__nadiDbaDasha = typeof getCurrentMahadasha === "function" ? getCurrentMahadasha("Chandra") : null;
+				window.__nadiDbaBukthi = typeof getCurrentBhukti === "function" ? getCurrentBhukti("Chandra") : null;
+				window.__nadiDbaAntara = null;
                 window.__nadiDbaActiveLevel = "antara";
                 window.__nadiDbaTemplate = "manual";
                 window.__nadiDbaHideUnD = false;
@@ -2933,10 +2933,11 @@ function clearFetchData() {
                 if (window.__dba3ActiveHighlightNums) window.__dba3ActiveHighlightNums.clear();
                 if (window.__dba3NegativeHighlightNums) window.__dba3NegativeHighlightNums.clear();
 
-                window.__nadiDbaExpanded = false;
-                window.__nadiDbaDasha = null;
-                window.__nadiDbaBukthi = null;
-                window.__nadiDbaAntara = null;
+                // --- RESET FOR NAKSHATRA NADI DBA MIXER ---
+				window.__nadiDbaExpanded = false;
+				window.__nadiDbaDasha = typeof getCurrentMahadasha === "function" ? getCurrentMahadasha("Chandra") : null;
+				window.__nadiDbaBukthi = typeof getCurrentBhukti === "function" ? getCurrentBhukti("Chandra") : null;
+				window.__nadiDbaAntara = null;
                 window.__nadiDbaActiveLevel = "antara";
                 window.__nadiDbaTemplate = "manual";
                 window.__nadiDbaHideUnD = false;
@@ -3043,10 +3044,10 @@ function loadSwissJSON(){
       if (window.__dba3NegativeHighlightNums) window.__dba3NegativeHighlightNums.clear();
 
       // --- RESET FOR NAKSHATRA NADI DBA MIXER ---
-      window.__nadiDbaExpanded = false;
-      window.__nadiDbaDasha = null;
-      window.__nadiDbaBukthi = null;
-      window.__nadiDbaAntara = null;
+	window.__nadiDbaExpanded = false;
+	window.__nadiDbaDasha = typeof getCurrentMahadasha === "function" ? getCurrentMahadasha("Chandra") : null;
+	window.__nadiDbaBukthi = typeof getCurrentBhukti === "function" ? getCurrentBhukti("Chandra") : null;
+	window.__nadiDbaAntara = null;
       window.__nadiDbaActiveLevel = "antara";
       window.__nadiDbaTemplate = "manual";
       window.__nadiDbaHideUnD = false;
@@ -9487,12 +9488,68 @@ document.addEventListener('click', function(e) {
 
 
 
-
-
 <script>
 /* ======================================================
     NAKSHATRA NADI DBA MIXER (6-LEVEL) - VERTICAL & DYNAMIC
 ====================================================== */
+
+// Helper to get Running Antara
+function getCurrentAntara(basePlanet) {
+    if (!window.__lastSwissData) return "Surya";
+    const MS_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+    const nakSize = 360 / 27;
+    let baseAbs = getAbsDeg(basePlanet);
+    if (baseAbs == null) return "Surya";
+    let nakIndex = Math.floor(baseAbs / nakSize);
+    let startLord = NAKSHATRA_LORDS[nakIndex];
+    let frac = (baseAbs % nakSize) / nakSize;
+    let elapsedYears = DASHA_YEARS[startLord] * frac;
+
+    const data = window.__lastSwissData;
+    let birthDate = new Date(data.meta.datetime_utc);
+
+    let mahaStart = new Date(
+    birthDate.getTime()
+    - elapsedYears * MS_YEAR
+    + (VIM_CALIB_OFFSET_DAYS * 24 * 60 * 60 * 1000)
+    );
+
+    let startIndex = DASHA_ORDER.indexOf(startLord);
+    let order = [...DASHA_ORDER.slice(startIndex), ...DASHA_ORDER.slice(0, startIndex)];
+
+    let inp = document.getElementById("vimEventDate");
+    let checkDate = inp && inp.value ? new Date(inp.value) : new Date();
+
+    for (let mahaLord of order) {
+        let mahaYears = DASHA_YEARS[mahaLord];
+        let mahaEnd = new Date(mahaStart.getTime() + mahaYears * MS_YEAR);
+        if (checkDate >= mahaStart && checkDate < mahaEnd) {
+            let bhuktiIndex = DASHA_ORDER.indexOf(mahaLord);
+            let bhuktiOrder = [...DASHA_ORDER.slice(bhuktiIndex), ...DASHA_ORDER.slice(0, bhuktiIndex)];
+            let bhuktiStart = new Date(mahaStart);
+            for (let bhuktiLord of bhuktiOrder) {
+                let bhuktiYears = mahaYears * (DASHA_YEARS[bhuktiLord] / 120);
+                let bhuktiEnd = new Date(bhuktiStart.getTime() + bhuktiYears * MS_YEAR);
+                if (checkDate >= bhuktiStart && checkDate < bhuktiEnd) {
+                    let antaraIndex = DASHA_ORDER.indexOf(bhuktiLord);
+                    let antaraOrder = [...DASHA_ORDER.slice(antaraIndex), ...DASHA_ORDER.slice(0, antaraIndex)];
+                    let antaraStart = new Date(bhuktiStart);
+                    for (let antaraLord of antaraOrder) {
+                        let antaraYears = bhuktiYears * (DASHA_YEARS[antaraLord] / 120);
+                        let antaraEnd = new Date(antaraStart.getTime() + antaraYears * MS_YEAR);
+                        if (checkDate >= antaraStart && checkDate < antaraEnd) {
+                            return antaraLord;
+                        }
+                        antaraStart = antaraEnd;
+                    }
+                }
+                bhuktiStart = bhuktiEnd;
+            }
+        }
+        mahaStart = mahaEnd;
+    }
+    return order[0];
+}
 
 // Override the global click highlight color to dark blue (#020c75) instead of red
 if (!document.getElementById("nadi-click-override")) {
@@ -9516,16 +9573,15 @@ if (!document.getElementById("nadi-click-override")) {
 
 // 1. Initialize Global States
 if (typeof window.__nadiDbaExpanded === 'undefined') window.__nadiDbaExpanded = false;
-if (typeof window.__nadiDbaDasha === 'undefined') window.__nadiDbaDasha = null;
-if (typeof window.__nadiDbaBukthi === 'undefined') window.__nadiDbaBukthi = null;
-if (typeof window.__nadiDbaAntara === 'undefined') window.__nadiDbaAntara = null;
 
-// Target iterator: "antara" (default) or "bukthi"
-if (typeof window.__nadiDbaActiveLevel === 'undefined') window.__nadiDbaActiveLevel = "antara";
+// Default configuration: Dasha - Bukthi selected by default
+if (typeof window.__nadiDbaDasha === 'undefined') window.__nadiDbaDasha = getCurrentMahadasha("Chandra");
+if (typeof window.__nadiDbaBukthi === 'undefined') window.__nadiDbaBukthi = getCurrentBhukti("Chandra");
+if (typeof window.__nadiDbaAntara === 'undefined') window.__nadiDbaAntara = null;
 
 if (typeof window.__nadiDbaPosNums === 'undefined') window.__nadiDbaPosNums = new Set();
 if (typeof window.__nadiDbaNegNums === 'undefined') window.__nadiDbaNegNums = new Set();
-if (typeof window.__nadiDbaSupportNums === 'undefined') window.__nadiDbaSupportNums = new Set(); // NEW SUPPORTIVE SET
+if (typeof window.__nadiDbaSupportNums === 'undefined') window.__nadiDbaSupportNums = new Set();
 if (typeof window.__nadiDbaTemplate === 'undefined') window.__nadiDbaTemplate = "manual";
 
 // Independent Hide Unselected
@@ -9538,18 +9594,22 @@ if (typeof window.__nadiDbaUseCuspal === 'undefined') window.__nadiDbaUseCuspal 
 
 // Mutually Exclusive Rem Occ Controls
 if (typeof window.__nadiDbaRemOcc1 === 'undefined') window.__nadiDbaRemOcc1 = false;
-if (typeof window.__nadiDbaRemOcc2 === 'undefined') window.__nadiDbaRemOcc2 = true; // Checked by default
-if (typeof window.__nadiDbaShowAntara === 'undefined') window.__nadiDbaShowAntara = false; // Default OFF
-if (typeof window.__nadiDbaRaKeAspectConj === 'undefined') window.__nadiDbaRaKeAspectConj = true; 
-if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = false; 
+if (typeof window.__nadiDbaRemOcc2 === 'undefined') window.__nadiDbaRemOcc2 = true; 
+if (typeof window.__nadiDbaRaKeAspect === 'undefined') window.__nadiDbaRaKeAspect = true; 
+if (typeof window.__nadiDbaRaKeConjunct === 'undefined') window.__nadiDbaRaKeConjunct = true; 
+if (typeof window.__nadiDbaRaKeSymbols === 'undefined') window.__nadiDbaRaKeSymbols = false; 
+if (typeof window.__nadiDbaRaKeSign2Sign === 'undefined') window.__nadiDbaRaKeSign2Sign = true; 
+if (typeof window.__nadiDbaConjNumber === 'undefined') window.__nadiDbaConjNumber = true; 
+if (typeof window.__nadiDbaConjSymbols === 'undefined') window.__nadiDbaConjSymbols = false; 
+if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = true; 
 
 // Hide/Show Options for Sub and Sub-Sub Levels
-if (typeof window.__nadiDbaHideEverything === 'undefined') window.__nadiDbaHideEverything = true; // Default ON (hidden)
-if (typeof window.__nadiDbaHideStarSub === 'undefined') window.__nadiDbaHideStarSub = false; // Default ON (hidden)
-if (typeof window.__nadiDbaHideSubSub === 'undefined') window.__nadiDbaHideSubSub = false; // Default ON (hidden)
+if (typeof window.__nadiDbaHideEverything === 'undefined') window.__nadiDbaHideEverything = true; 
+if (typeof window.__nadiDbaHideStarSub === 'undefined') window.__nadiDbaHideStarSub = false; 
+if (typeof window.__nadiDbaHideSubSub === 'undefined') window.__nadiDbaHideSubSub = false; 
 
-// NEW: Untenented Logic State
-if (typeof window.__nadiDbaUntenented === 'undefined') window.__nadiDbaUntenented = false; // Default OFF
+// Untenented Logic State
+if (typeof window.__nadiDbaUntenented === 'undefined') window.__nadiDbaUntenented = false; 
 
 function buildNadiDbaMixer() {
     let wrap = document.getElementById("nadiDbaMixerWrap");
@@ -9593,14 +9653,9 @@ function buildNadiDbaMixer() {
         innerWrap.style.display = window.__nadiDbaExpanded ? "block" : "none";
     };
 
-    // --- DEFAULTS ---
     let birthStarlord = getStarLord("Chandra") || "Ketu";
     let dStartIndex = DASHA_ORDER.indexOf(birthStarlord);
     let fullOrder = [...DASHA_ORDER.slice(dStartIndex), ...DASHA_ORDER.slice(0, dStartIndex)];
-    
-    if(!window.__nadiDbaDasha) window.__nadiDbaDasha = getCurrentMahadasha("Chandra");
-    if(!window.__nadiDbaBukthi) window.__nadiDbaBukthi = getCurrentBhukti("Chandra");
-    if(!window.__nadiDbaAntara) window.__nadiDbaAntara = fullOrder[0];
 
     // --- HIGHLIGHT CONTROLS ---
     let hlWrap = document.createElement("div");
@@ -9615,101 +9670,59 @@ function buildNadiDbaMixer() {
 
     let tSelect = document.createElement("select");
     tSelect.style = "background:#010a08; color:#ecfdf5; border:1px solid #10b981; padding:4px 8px; font-weight:900; cursor:pointer;";
+    tSelect.id = "nadiDbaTemplateSelect";
 
-   tSelect.id = "nadiDbaTemplateSelect"; // Assign an ID to restore focus
-
-    
-	
-	
-	
-	
-	
-	
-	
-const UNIFIED_TEMPLATES = {
-  // --- DEFAULT & BASICS ---
-  manual: { name: "Manual Entry", pos: [], support: [], neg: [], note: "" },
-  even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], support: [8, 12], neg: [1, 3, 5, 7, 9, 11], note: "" },
-
-  // --- EDUCATION ---
-  education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
-  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
-
-  // --- CAREER, JOB & BUSINESS ---
-  career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
-  job_change: { name: "Job Change", pos: [3, 5, 6, 9], support: [], neg: [], note: "" },
-  transfer: { name: "Transfer", pos: [3, 10, 12], support: [], neg: [], note: "" },
-  suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], support: [], neg: [1, 5, 8, 9, 12], note: "" },
-
-  // --- MARRIAGE & RELATIONSHIPS ---
-  marriage: { name: "Marriage", pos: [2, 7, 11], support: [3, 5, 9], neg: [1, 4, 6, 8, 10, 12], note: "Karaka: Venus" },
-  love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], support: [], neg: [1, 4, 6, 8, 12], note: "" },
-  second_marriage: { name: "Second Marriage", pos: [2, 5, 7, 9, 11], support: [], neg: [], note: "" },
-
-  // --- CHILDREN ---
-  child: { name: "Child Birth", pos: [2, 5, 11], support: [3, 7, 9], neg: [1, 4, 8, 10, 12], note: "Karaka: Jupiter" },
-
-  // --- INCOME, WEALTH & FINANCE ---
-  income: { name: "Income", pos: [2, 6, 10, 11], support: [7], neg: [5, 8, 9, 12], note: "" },
-  financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], support: [], neg: [5, 8, 9, 12], note: "" },
-  sudden_loss: { name: "Sudden Loss", pos: [], support: [], neg: [2, 5, 8, 12], note: "" },
-
-  // --- PROPERTY & VEHICLES ---
-  property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], support: [6, 8], neg: [3, 5, 10], note: "" },
-  home_location_change: { name: "Home Location Change", pos: [], support: [], neg: [1, 3, 12], note: "" },
-
-  // --- HEALTH & LONGEVITY ---
-  health: { name: "Health", pos: [1, 5, 11], support: [3], neg: [4, 6, 8, 12], note: "" },
-  recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 9, 11], support: [], neg: [1, 6, 8, 12], note: "" },
-  long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], support: [], neg: [2, 6, 7, 9, 11, 12], note: "" },
-  short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], support: [], neg: [1, 3, 5, 8, 10], note: "" },
-  long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 9], support: [], neg: [2, 6, 7, 8, 11, 12], note: "" },
-  long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 11], support: [9], neg: [2, 4, 6, 7, 8, 12], note: "" },
-  long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], support: [9], neg: [2, 4, 6, 7, 12], note: "" },
-  accident: { name: "Accident", pos: [], support: [], neg: [6, 8, 12], note: "" },
-  rape: { name: "Rape", pos: [], support: [], neg: [5, 8, 12], note: "" },
-  murder: { name: "Murder", pos: [], support: [], neg: [2, 7, 8, 12], note: "" },
-  suicide_death: { name: "Suicide & Death", pos: [], support: [], neg: [1, 2, 6, 7, 8, 12], note: "" },
-
-  // --- TRAVEL ---
-  travel: { name: "Travel Abroad", pos: [3, 9, 12], support: [7], neg: [2, 4, 8, 11], note: "" },
-  foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], support: [], neg: [], note: "" },
-
-  // --- COURT, LITIGATIONS & POLICE ---
-  court: { name: "Court Cases", pos: [6, 10, 11], support: [], neg: [1, 3, 8, 12], note: "" },
-  court_case: { name: "Court Case Win", pos: [2, 6, 7, 11], support: [], neg: [5, 8, 12], note: "" },
-  litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], support: [], neg: [], note: "" },
-  litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [], support: [], neg: [2, 6, 7, 12], note: "" },
-  financial_litigations: { name: "Financial Litigations", pos: [], support: [], neg: [2, 5, 7, 12], note: "" },
-  property_litigations: { name: "Property Litigations", pos: [], support: [], neg: [4, 7, 8, 11], note: "" },
-  relationship_litigations: { name: "Relationship Litigations", pos: [], support: [], neg: [1, 6, 7, 12], note: "" },
-  revenue_litigations: { name: "Revenue Litigations", pos: [], support: [], neg: [3, 4, 8, 12], note: "" },
-  false_allegation: { name: "False Allegation", pos: [], support: [], neg: [1, 3, 7, 8], note: "" },
-  others_defeat: { name: "Others Defeat", pos: [], support: [], neg: [6, 7, 11], note: "" },
-  income_tax_raid: { name: "Income Tax Raid", pos: [], support: [], neg: [10, 12], note: "" },
-  troubles_from_frauds: { name: "Troubles from Frauds", pos: [], support: [], neg: [3, 8], note: "Karaka: Rahu" },
-  arrest_by_police: { name: "Arrest by Police", pos: [], support: [], neg: [3, 8, 12], note: "Karaka: Rahu, Mars" },
-
-  // --- POLITICS, FAME & NEGOTIATION ---
-  politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], support: [], neg: [4, 8, 12], note: "" },
-  political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], support: [], neg: [], note: "" },
-  spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], support: [], neg: [], note: "" },
-  name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], support: [], neg: [1, 8, 12], note: "" },
-  film_success: { name: "Film Success", pos: [5, 6, 7, 10, 11], support: [], neg: [8, 12], note: "" },
-  negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], support: [], neg: [2, 8, 12], note: "" }
-};
-
-
-
-
-
-
-
-
-
-
-
-
+    const UNIFIED_TEMPLATES = {
+      manual: { name: "Manual Entry", pos: [], support: [], neg: [], note: "" },
+      even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], support: [8, 12], neg: [1, 3, 5, 7, 9, 11], note: "" },
+      education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
+      Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
+      career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
+      job_change: { name: "Job Change", pos: [3, 5, 6, 9], support: [], neg: [], note: "" },
+      transfer: { name: "Transfer", pos: [3, 10, 12], support: [], neg: [], note: "" },
+      suspension_or_dismissal: { name: "Suspension or Dismissal in Job", pos: [], support: [], neg: [1, 5, 8, 9, 12], note: "" },
+      marriage: { name: "Marriage", pos: [2, 7, 11], support: [3, 5, 9], neg: [1, 4, 6, 8, 10, 12], note: "Karaka: Venus" },
+      love_marriage: { name: "Love Marriage", pos: [2, 5, 7, 11], support: [], neg: [1, 4, 6, 8, 12], note: "" },
+      second_marriage: { name: "Second Marriage", pos: [2, 5, 7, 9, 11], support: [], neg: [], note: "" },
+      child: { name: "Child Birth", pos: [2, 5, 11], support: [3, 7, 9], neg: [1, 4, 8, 10, 12], note: "Karaka: Jupiter" },
+      income: { name: "Income", pos: [2, 6, 10, 11], support: [7], neg: [5, 8, 9, 12], note: "" },
+      financial_crisis_bankrupt: { name: "Financial Crisis Bankrupt", pos: [2, 6, 11], support: [], neg: [5, 8, 9, 12], note: "" },
+      sudden_loss: { name: "Sudden Loss", pos: [], support: [], neg: [2, 5, 8, 12], note: "" },
+      property: { name: "Property & Vehicle Purchase", pos: [4, 11, 12], support: [6, 8], neg: [3, 5, 10], note: "" },
+      home_location_change: { name: "Home Location Change", pos: [], support: [], neg: [1, 3, 12], note: "" },
+      health: { name: "Health", pos: [1, 5, 11], support: [3], neg: [4, 6, 8, 12], note: "" },
+      recovery_vs_sick_chronic: { name: "Recovery vs Sick Chronic", pos: [5, 9, 11], support: [], neg: [1, 6, 8, 12], note: "" },
+      long_life: { name: "Long Life", pos: [1, 3, 5, 8, 10], support: [], neg: [2, 6, 7, 9, 11, 12], note: "" },
+      short_life: { name: "Short Life", pos: [2, 6, 7, 9, 11, 12], support: [], neg: [1, 3, 5, 8, 10], note: "" },
+      long_char: { name: "Longevity Chara Lagna", pos: [1, 3, 5, 9], support: [], neg: [2, 6, 7, 8, 11, 12], note: "" },
+      long_sthira: { name: "Longevity Sthira Lagna", pos: [1, 3, 5, 11], support: [9], neg: [2, 4, 6, 7, 8, 12], note: "" },
+      long_dwi: { name: "Longevity Dwiswabhava Lagna", pos: [1, 3, 5, 8, 11], support: [9], neg: [2, 4, 6, 7, 12], note: "" },
+      accident: { name: "Accident", pos: [], support: [], neg: [6, 8, 12], note: "" },
+      rape: { name: "Rape", pos: [], support: [], neg: [5, 8, 12], note: "" },
+      murder: { name: "Murder", pos: [], support: [], neg: [2, 7, 8, 12], note: "" },
+      suicide_death: { name: "Suicide & Death", pos: [], support: [], neg: [1, 2, 6, 7, 8, 12], note: "" },
+      travel: { name: "Travel Abroad", pos: [3, 9, 12], support: [7], neg: [2, 4, 8, 11], note: "" },
+      foreign_going_for_education: { name: "Foreign Going for Education", pos: [4, 9, 11, 12], support: [], neg: [], note: "" },
+      court: { name: "Court Cases", pos: [6, 10, 11], support: [], neg: [1, 3, 8, 12], note: "" },
+      court_case: { name: "Court Case Win", pos: [2, 6, 7, 11], support: [], neg: [5, 8, 12], note: "" },
+      litigations_mutual_withdrawal: { name: "Litigations Mutual Withdrawal", pos: [5, 7, 12], support: [], neg: [], note: "" },
+      litigation_settlement_loss: { name: "Litigation Settlement Loss", pos: [], support: [], neg: [2, 6, 7, 12], note: "" },
+      financial_litigations: { name: "Financial Litigations", pos: [], support: [], neg: [2, 5, 7, 12], note: "" },
+      property_litigations: { name: "Property Litigations", pos: [], support: [], neg: [4, 7, 8, 11], note: "" },
+      relationship_litigations: { name: "Relationship Litigations", pos: [], support: [], neg: [1, 6, 7, 12], note: "" },
+      revenue_litigations: { name: "Revenue Litigations", pos: [], support: [], neg: [3, 4, 8, 12], note: "" },
+      false_allegation: { name: "False Allegation", pos: [], support: [], neg: [1, 3, 7, 8], note: "" },
+      others_defeat: { name: "Others Defeat", pos: [], support: [], neg: [6, 7, 11], note: "" },
+      income_tax_raid: { name: "Income Tax Raid", pos: [], support: [], neg: [10, 12], note: "" },
+      troubles_from_frauds: { name: "Troubles from Frauds", pos: [], support: [], neg: [3, 8], note: "Karaka: Rahu" },
+      arrest_by_police: { name: "Arrest by Police", pos: [], support: [], neg: [3, 8, 12], note: "Karaka: Rahu, Mars" },
+      politics_election_success_failure: { name: "Politics Election Success Failure", pos: [1, 6, 11], support: [], neg: [4, 8, 12], note: "" },
+      political_leader: { name: "Political Leader", pos: [1, 6, 9, 10, 11], support: [], neg: [], note: "" },
+      spiritual_leader: { name: "Spiritual Leader", pos: [1, 5, 9, 11, 12], support: [], neg: [], note: "" },
+      name_fame_popular: { name: "Name & Fame Popular", pos: [3, 6, 10, 11], support: [], neg: [1, 8, 12], note: "" },
+      film_success: { name: "Film Success", pos: [5, 6, 7, 10, 11], support: [], neg: [8, 12], note: "" },
+      negotiation_success_failure: { name: "Negotiation Success Failure", pos: [3, 9, 11], support: [], neg: [2, 8, 12], note: "" }
+    };
 
     Object.keys(UNIFIED_TEMPLATES).forEach(key => {
         let opt = document.createElement("option");
@@ -9734,36 +9747,27 @@ const UNIFIED_TEMPLATES = {
             }
         }
         buildNadiDbaMixer();
-
-        // Restore focus immediately after the UI rebuilds
         setTimeout(() => {
             let restoredSelect = document.getElementById("nadiDbaTemplateSelect");
             if (restoredSelect) restoredSelect.focus();
         }, 0);
     };
 
-    // Keyboard Infinite Scrolling for the Dropdown
     tSelect.addEventListener("keydown", (e) => {
         if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault(); 
             let currentIndex = tSelect.selectedIndex;
             let total = tSelect.options.length;
-
-            if (e.key === "ArrowDown") {
-                currentIndex = (currentIndex + 1) % total; 
-            } else if (e.key === "ArrowUp") {
-                currentIndex = (currentIndex - 1 + total) % total; 
-            }
-
+            if (e.key === "ArrowDown") currentIndex = (currentIndex + 1) % total; 
+            else if (e.key === "ArrowUp") currentIndex = (currentIndex - 1 + total) % total; 
             tSelect.selectedIndex = currentIndex;
-            tSelect.dispatchEvent(new Event('change')); // Trigger the change manually
+            tSelect.dispatchEvent(new Event('change'));
         }
     });
 
     templateLabel.appendChild(tSelect);
     templateRow.appendChild(templateLabel);
 
-    // --- ADD NOTE DISPLAY ---
     let noteDisplayWrap = document.createElement("div");
     noteDisplayWrap.style = "width:100%; text-align:center; padding-top:8px;";
     let currentNote = UNIFIED_TEMPLATES[window.__nadiDbaTemplate]?.note || "";
@@ -9823,8 +9827,8 @@ const UNIFIED_TEMPLATES = {
         posRow.appendChild(btn);
     }
     hlWrap.appendChild(posRow);
-	
-	// --- SUPPORTIVE ROW ---
+    
+    // Supportive Row
     let supRow = document.createElement("div");
     supRow.style = "display:flex; justify-content:center; gap:10px; flex-wrap:wrap; align-items:center;";
     let supLabel = document.createElement("span");
@@ -9902,7 +9906,6 @@ const UNIFIED_TEMPLATES = {
     }
 
     optionsWrap.appendChild(createOption("Include Conjunct Cuspal (7 Planets)", "__nadiDbaUseCuspal"));
-    optionsWrap.appendChild(createOption("Ra/Ke Special Rule", "__nadiDbaRaKeSpecial"));
 
     let rem1Lbl = document.createElement("label");
     rem1Lbl.style = "font-weight:900; color:#f59e0b; cursor:pointer; font-size:15px; border:1px solid #f59e0b; padding:4px 10px; border-radius:4px; background:#010a08;";
@@ -9932,47 +9935,19 @@ const UNIFIED_TEMPLATES = {
     rem2Lbl.appendChild(document.createTextNode(" Rem Occ {2+}"));
     optionsWrap.appendChild(rem2Lbl);
 
-    let showAntaraLbl = document.createElement("label");
-    showAntaraLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:15px; border:1px solid #10b981; padding:4px 10px; border-radius:4px; background:#010a08;";
-    let showAntaraChk = document.createElement("input");
-    showAntaraChk.type = "checkbox";
-    showAntaraChk.checked = window.__nadiDbaShowAntara;
-    showAntaraChk.onchange = (e) => { 
-        window.__nadiDbaShowAntara = e.target.checked; 
-        buildNadiDbaMixer(); 
-    };
-    showAntaraLbl.appendChild(showAntaraChk);
-    showAntaraLbl.appendChild(document.createTextNode(" Show Antara"));
-    optionsWrap.appendChild(showAntaraLbl);
-
-    let rakeAspConjLbl = document.createElement("label");
-    rakeAspConjLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:15px; border:1px solid #10b981; padding:4px 10px; border-radius:4px; background:#010a08;";
-    let rakeAspConjChk = document.createElement("input");
-    rakeAspConjChk.type = "checkbox";
-    rakeAspConjChk.checked = window.__nadiDbaRaKeAspectConj;
-    rakeAspConjChk.onchange = (e) => { 
-        window.__nadiDbaRaKeAspectConj = e.target.checked; 
-        buildNadiDbaMixer(); 
-    };
-    rakeAspConjLbl.appendChild(rakeAspConjChk);
-    rakeAspConjLbl.appendChild(document.createTextNode(" Rahu / Ketu - Aspect & Conj"));
-    optionsWrap.appendChild(rakeAspConjLbl);
-
-    // --- SHOW PLACED CHECKBOX ---
     let showPlacedLbl = document.createElement("label");
     showPlacedLbl.style = "font-weight:900; color:#38bdf8; cursor:pointer; font-size:15px; border:1px solid #38bdf8; padding:4px 10px; border-radius:4px; background:#010a08;";
     let showPlacedChk = document.createElement("input");
     showPlacedChk.type = "checkbox";
     showPlacedChk.checked = window.__nadiDbaShowPlaced;
-    showPlacedChk.onchange = (e) => { 
-        window.__nadiDbaShowPlaced = e.target.checked; 
-        buildNadiDbaMixer(); 
-    };
+    showPlacedChk.onchange = (e) => { window.__nadiDbaShowPlaced = e.target.checked; buildNadiDbaMixer(); };
     showPlacedLbl.appendChild(showPlacedChk);
     showPlacedLbl.appendChild(document.createTextNode(" Show Placed"));
     optionsWrap.appendChild(showPlacedLbl);
 
-    // --- HIDE EVERYTHING CHECKBOX ---
+    let hideOptionsWrap = document.createElement("div");
+    hideOptionsWrap.style = "display:flex; justify-content:center; gap:15px; margin-bottom:25px; flex-wrap:wrap;";
+
     let hideEverythingLbl = document.createElement("label");
     hideEverythingLbl.style = "font-weight:900; color:#fb923c; cursor:pointer; font-size:15px; border:1px solid #fb923c; padding:4px 10px; border-radius:4px; background:#010a08;";
     let hideEverythingChk = document.createElement("input");
@@ -9983,14 +9958,16 @@ const UNIFIED_TEMPLATES = {
         if(e.target.checked) {
             window.__nadiDbaHideStarSub = true;
             window.__nadiDbaHideSubSub = true;
+        } else {
+            window.__nadiDbaHideStarSub = false;
+            window.__nadiDbaHideSubSub = false;
         }
         buildNadiDbaMixer(); 
     };
     hideEverythingLbl.appendChild(hideEverythingChk);
     hideEverythingLbl.appendChild(document.createTextNode(" Hide Everything"));
-    optionsWrap.appendChild(hideEverythingLbl);
+    hideOptionsWrap.appendChild(hideEverythingLbl);
 
-    // --- HIDE ⭐ SUBLORD CHECKBOX ---
     let hideStarSubLbl = document.createElement("label");
     hideStarSubLbl.style = "font-weight:900; color:#ef4444; cursor:pointer; font-size:15px; border:1px solid #ef4444; padding:4px 10px; border-radius:4px; background:#010a08;";
     let hideStarSubChk = document.createElement("input");
@@ -10007,9 +9984,8 @@ const UNIFIED_TEMPLATES = {
     };
     hideStarSubLbl.appendChild(hideStarSubChk);
     hideStarSubLbl.appendChild(document.createTextNode(" Hide ⭐ Sublord"));
-    optionsWrap.appendChild(hideStarSubLbl);
+    hideOptionsWrap.appendChild(hideStarSubLbl);
 
-    // --- HIDE SUB-SUB CHECKBOX ---
     let hideSubSubLbl = document.createElement("label");
     hideSubSubLbl.style = "font-weight:900; color:#a855f7; cursor:pointer; font-size:15px; border:1px solid #a855f7; padding:4px 10px; border-radius:4px; background:#010a08;";
     let hideSubSubChk = document.createElement("input");
@@ -10025,29 +10001,31 @@ const UNIFIED_TEMPLATES = {
     };
     hideSubSubLbl.appendChild(hideSubSubChk);
     hideSubSubLbl.appendChild(document.createTextNode(" Hide Sub-Sub"));
-    optionsWrap.appendChild(hideSubSubLbl);
+    hideOptionsWrap.appendChild(hideSubSubLbl);
 
-    // --- UNTENENTED CHECKBOX ---
     let untenentedLbl = document.createElement("label");
     untenentedLbl.style = "font-weight:900; color:#facc15; cursor:pointer; font-size:15px; border:1px solid #facc15; padding:4px 10px; border-radius:4px; background:#010a08;";
     let untenentedChk = document.createElement("input");
     untenentedChk.type = "checkbox";
     untenentedChk.checked = window.__nadiDbaUntenented;
-    untenentedChk.onchange = (e) => { 
-        window.__nadiDbaUntenented = e.target.checked; 
-        buildNadiDbaMixer(); 
-    };
+    untenentedChk.onchange = (e) => { window.__nadiDbaUntenented = e.target.checked; buildNadiDbaMixer(); };
     untenentedLbl.appendChild(untenentedChk);
     untenentedLbl.appendChild(document.createTextNode(" Untenented"));
-    optionsWrap.appendChild(untenentedLbl);
+    hideOptionsWrap.appendChild(untenentedLbl);
 
     innerWrap.appendChild(optionsWrap);
+    innerWrap.appendChild(hideOptionsWrap);
 
-    // --- VERTICAL 3-COLUMN SELECTORS ---
+    // --- DYNAMIC COLUMNS SELECTORS (ALWAYS 3 COLUMNS) ---
     let selectorsWrap = document.createElement("div");
-    selectorsWrap.style = "display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-bottom:20px;";
+    selectorsWrap.style = `display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-bottom:20px;`;
 
-    function buildVerticalSelector(titleStr, color, planetOrder, activePlanet, onBtnClick, isIterating) {
+    
+	
+	
+	
+	
+	function buildVerticalSelector(titleStr, color, planetOrder, activePlanet, onBtnClick, isIterating) {
         let col = document.createElement("div");
         col.style = "display:flex; flex-direction:column; gap:5px;";
 
@@ -10075,7 +10053,6 @@ const UNIFIED_TEMPLATES = {
                     btn.style.border = `1px solid ${color}`;
                 }
             }
-
             btn.style.padding = "6px 12px";
             btn.style.cursor = "pointer";
             btn.style.fontWeight = "900";
@@ -10086,39 +10063,183 @@ const UNIFIED_TEMPLATES = {
         return col;
     }
 
-    let bOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(window.__nadiDbaDasha)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(window.__nadiDbaDasha))];
-    let aOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(window.__nadiDbaBukthi)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(window.__nadiDbaBukthi))];
+    let currentMaha = getCurrentMahadasha("Chandra");
+    let currentBhukti = getCurrentBhukti("Chandra");
+    let currentAntara = getCurrentAntara("Chandra");
+
+    let bBase = window.__nadiDbaDasha || currentMaha;
+    let bOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(bBase)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(bBase))];
+
+    let aBase = window.__nadiDbaBukthi || currentBhukti;
+    let aOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(aBase)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(aBase))];
 
     selectorsWrap.appendChild(buildVerticalSelector(
         "DASHA", "#38bdf8", fullOrder, window.__nadiDbaDasha, 
-        (p) => { window.__nadiDbaDasha = p; buildNadiDbaMixer(); }, 
-        false
+        (p) => { 
+            if (window.__nadiDbaDasha === p) {
+                window.__nadiDbaDasha = null;
+                window.__nadiDbaBukthi = null;
+                window.__nadiDbaAntara = null;
+            } else {
+                window.__nadiDbaDasha = p; 
+                window.__nadiDbaBukthi = null;
+                window.__nadiDbaAntara = null;
+            }
+            buildNadiDbaMixer(); 
+        }, 
+        window.__nadiDbaDasha === null
     ));
     
     selectorsWrap.appendChild(buildVerticalSelector(
         "BUKTHI", "#f472b6", bOrder, window.__nadiDbaBukthi, 
         (p) => { 
-            window.__nadiDbaBukthi = p; 
-            window.__nadiDbaActiveLevel = "antara";
+            if (window.__nadiDbaBukthi === p) {
+                window.__nadiDbaBukthi = null;
+                window.__nadiDbaAntara = null;
+            } else {
+                window.__nadiDbaBukthi = p; 
+                window.__nadiDbaAntara = null;
+                if(!window.__nadiDbaDasha) window.__nadiDbaDasha = currentMaha;
+            }
             buildNadiDbaMixer(); 
         }, 
-        window.__nadiDbaActiveLevel === "bukthi"
+        window.__nadiDbaBukthi === null
     ));
     
     selectorsWrap.appendChild(buildVerticalSelector(
         "ANTARA", "#a855f7", aOrder, window.__nadiDbaAntara, 
         (p) => { 
-            window.__nadiDbaAntara = p; 
-            window.__nadiDbaActiveLevel = "bukthi";
+            if (window.__nadiDbaAntara === p) {
+                window.__nadiDbaAntara = null;
+            } else {
+                window.__nadiDbaAntara = p; 
+                if(!window.__nadiDbaBukthi) window.__nadiDbaBukthi = currentBhukti;
+                if(!window.__nadiDbaDasha) window.__nadiDbaDasha = currentMaha;
+            }
             buildNadiDbaMixer(); 
         }, 
-        window.__nadiDbaActiveLevel === "antara"
+        window.__nadiDbaAntara === null
     ));
 
     innerWrap.appendChild(selectorsWrap);
 
-    // --- NADI CUSTOM LOGIC PROCESSORS ---
+    let rakeWrap = document.createElement("div");
+    rakeWrap.style = "display:flex; justify-content:center; gap:20px; margin-bottom:25px; flex-wrap:wrap; padding: 15px; border: 1px dashed #10b981; background: #010a08; border-radius: 8px;";
     
+    function createRaKeOption(labelStr, varName, colorStr) {
+        let lbl = document.createElement("label");
+        lbl.style = `font-weight:900; color:${colorStr}; cursor:pointer; font-size:16px; border:1px solid ${colorStr}; padding:6px 14px; border-radius:4px; background:#021b16; display:flex; align-items:center; gap:8px;`;
+        let chk = document.createElement("input");
+        chk.type = "checkbox";
+        chk.checked = window[varName];
+        chk.onchange = (e) => { window[varName] = e.target.checked; buildNadiDbaMixer(); };
+        lbl.appendChild(chk);
+        lbl.appendChild(document.createTextNode(labelStr));
+        return lbl;
+    }
+
+    rakeWrap.appendChild(createRaKeOption("Ra/Ke Special Rule", "__nadiDbaRaKeSpecial", "#10b981"));
+    rakeWrap.appendChild(createRaKeOption("RaKe Asp", "__nadiDbaRaKeAspect", "#38bdf8"));
+    rakeWrap.appendChild(createRaKeOption("RaKe Conjunct", "__nadiDbaRaKeConjunct", "#f472b6"));
+    rakeWrap.appendChild(createRaKeOption("RaKe Symbols", "__nadiDbaRaKeSymbols", "#facc15"));
+    rakeWrap.appendChild(createRaKeOption("RaKe Sign2Sign", "__nadiDbaRaKeSign2Sign", "#ecfdf5"));
+
+    // Conj Number Mutually Exclusive Toggle
+    let conjNumLbl = document.createElement("label");
+    conjNumLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:16px; border:1px solid #10b981; padding:6px 14px; border-radius:4px; background:#021b16; display:flex; align-items:center; gap:8px;";
+    let conjNumChk = document.createElement("input");
+    conjNumChk.type = "checkbox";
+    conjNumChk.checked = window.__nadiDbaConjNumber;
+    conjNumChk.onchange = (e) => { 
+        window.__nadiDbaConjNumber = e.target.checked;
+        if(e.target.checked) window.__nadiDbaConjSymbols = false;
+        buildNadiDbaMixer(); 
+    };
+    conjNumLbl.appendChild(conjNumChk);
+    conjNumLbl.appendChild(document.createTextNode("Conj Number"));
+    rakeWrap.appendChild(conjNumLbl);
+
+    // Conj Symbols Mutually Exclusive Toggle
+    let conjSymLbl = document.createElement("label");
+    conjSymLbl.style = "font-weight:900; color:#10b981; cursor:pointer; font-size:16px; border:1px solid #10b981; padding:6px 14px; border-radius:4px; background:#021b16; display:flex; align-items:center; gap:8px;";
+    let conjSymChk = document.createElement("input");
+    conjSymChk.type = "checkbox";
+    conjSymChk.checked = window.__nadiDbaConjSymbols;
+    conjSymChk.onchange = (e) => { 
+        window.__nadiDbaConjSymbols = e.target.checked;
+        if(e.target.checked) window.__nadiDbaConjNumber = false;
+        buildNadiDbaMixer(); 
+    };
+    conjSymLbl.appendChild(conjSymChk);
+    conjSymLbl.appendChild(document.createTextNode("Conj Symbols"));
+    rakeWrap.appendChild(conjSymLbl);
+    
+    innerWrap.appendChild(rakeWrap);
+
+   
+   
+   
+   // --- QUICK SELECT ROW ---
+    let quickSelectWrap = document.createElement("div");
+    quickSelectWrap.style = "display:flex; justify-content:center; gap:15px; margin-bottom:25px; flex-wrap:wrap;";
+
+    function createQuickBtn(labelStr, isActive, onClickFn) {
+        let btn = document.createElement("button");
+        btn.innerHTML = labelStr;
+        
+        if (isActive) {
+            // ACTIVE: Glowing yellow/gold so it clearly stands out
+            btn.style = "background:#facc15; color:#000; padding:6px 16px; border:2px solid #000; border-radius:4px; font-weight:900; cursor:pointer; box-shadow: 0 0 12px #facc15;";
+        } else {
+            // INACTIVE: Normal, fully visible dark mode button (no dimming)
+            btn.style = "background:#010a08; color:#10b981; padding:6px 16px; border:1px solid #10b981; border-radius:4px; font-weight:900; cursor:pointer;";
+        }
+        
+        btn.onclick = onClickFn;
+        return btn;
+    }
+
+    // Capture the exact current transits to compare against
+    let currD = getCurrentMahadasha("Chandra");
+    let currB = getCurrentBhukti("Chandra");
+    let currA = getCurrentAntara("Chandra");
+
+    // Determine exactly which button is currently active (Strict matching)
+    let isNone = window.__nadiDbaDasha === null && window.__nadiDbaBukthi === null && window.__nadiDbaAntara === null;
+    let isDasha = window.__nadiDbaDasha === currD && window.__nadiDbaBukthi === null && window.__nadiDbaAntara === null;
+    let isDashaBukthi = window.__nadiDbaDasha === currD && window.__nadiDbaBukthi === currB && window.__nadiDbaAntara === null;
+    let isDashaBukthiAntara = window.__nadiDbaDasha === currD && window.__nadiDbaBukthi === currB && window.__nadiDbaAntara === currA;
+
+    quickSelectWrap.appendChild(createQuickBtn("Select None", isNone, () => {
+        window.__nadiDbaDasha = null;
+        window.__nadiDbaBukthi = null;
+        window.__nadiDbaAntara = null;
+        buildNadiDbaMixer();
+    }));
+
+    quickSelectWrap.appendChild(createQuickBtn("Dasha", isDasha, () => {
+        window.__nadiDbaDasha = currD;
+        window.__nadiDbaBukthi = null;
+        window.__nadiDbaAntara = null;
+        buildNadiDbaMixer();
+    }));
+
+    quickSelectWrap.appendChild(createQuickBtn("Dasha - Bukthi", isDashaBukthi, () => {
+        window.__nadiDbaDasha = currD;
+        window.__nadiDbaBukthi = currB;
+        window.__nadiDbaAntara = null;
+        buildNadiDbaMixer();
+    }));
+
+    quickSelectWrap.appendChild(createQuickBtn("Dasha - Bukthi - Antara", isDashaBukthiAntara, () => {
+        window.__nadiDbaDasha = currD;
+        window.__nadiDbaBukthi = currB;
+        window.__nadiDbaAntara = currA;
+        buildNadiDbaMixer();
+    }));
+
+    innerWrap.appendChild(quickSelectWrap);
+
     function getHouseOccupantCount(houseNum) {
         let count = 0;
         let targetHouse = parseInt(houseNum, 10);
@@ -10136,21 +10257,16 @@ const UNIFIED_TEMPLATES = {
 
     function nadiFilterOccupied(lordsStr, mode) {
         if (!lordsStr || lordsStr === "-" || mode === 0) return lordsStr;
-        
         let arr = lordsStr.split(",").map(x => x.trim()).filter(x => x !== "");
         let res = [];
-        
         arr.forEach(h => {
             let count = getHouseOccupantCount(h);
             if (mode === 1 && count >= 1) {
-                // Remove if 1 or more occupant
             } else if (mode === 2 && count >= 2) {
-                // Remove ONLY if 2 or more occupants
             } else {
-                res.push(h); // Keep it
+                res.push(h);
             }
         });
-        
         return res.length > 0 ? res.join(",") : "-";
     }
 
@@ -10221,12 +10337,12 @@ const UNIFIED_TEMPLATES = {
         if (!planet) return "-";
         
         function makeLine(label, ent, colorStr, forceHideNums = false) {
-            if(!ent) return `<div style="display:grid; grid-template-columns: 85px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: -</span></div>`;
+            if(!ent) return `<div style="display:grid; grid-template-columns: 100px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: -</span></div>`;
             let pLabel = getPlanetLabel(ent);
             let numStr = "-";
 
             if (!forceHideNums) {
-                if (window.__nadiDbaRaKeAspectConj && (ent === "Rahu" || ent === "Ketu")) {
+                if (ent === "Rahu" || ent === "Ketu") {
                     let combinedParts = [];
                     let h = getPlanetHouse(ent);
                     if (h) {
@@ -10275,44 +10391,91 @@ const UNIFIED_TEMPLATES = {
                         }
                     }
 
-                    let txtAsp = getAspectedBy(ent); 
-                    if (txtAsp && txtAsp !== "-") {
-                        let matches = txtAsp.match(/([a-zA-Z]+)\(([\d,]+)\)/g) || [];
-                        matches.forEach(m => {
-                            let parts = m.match(/\(([\d,]+)\)/);
-                            if (parts && parts[1]) {
-                                let rawStrNums = parts[1].split(",");
-                                let placedNum = parseInt(rawStrNums[0], 10); 
-                                
-                                let filteredNums = rawStrNums.map(Number);
-                                filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
-                                
-                                if (filteredNums.length > 0) {
-                                    let formatted = filteredNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
-                                    combinedParts.push(formatted);
-                                }
+                    let aspectingPlanets = [];
+                    let conjunctPlanets = [];
+                    const stdPlanets = ["Surya", "Chandra", "Mangala", "Budha", "Jupiter", "Venus", "Saturn"];
+                    
+                    let isS2S = window.__nadiDbaRaKeSign2Sign;
+                    let tVal = isS2S ? getPlanetSign(ent) : parseInt(getPlanetHouse(ent), 10);
+
+                    if (tVal) {
+                        stdPlanets.forEach(p => {
+                            let pVal = isS2S ? getPlanetSign(p) : parseInt(getPlanetHouse(p), 10);
+                            if (!pVal) return;
+                            
+                            // 1. Conjunction (Sign or House)
+                            if (pVal === tVal) {
+                                conjunctPlanets.push(p);
+                            }
+                            
+                            // 2. Aspect (Including the 7th aspect)
+                            let pIdx = isS2S ? ZODIAC_ORDER.indexOf(pVal) : pVal;
+                            let tIdx = isS2S ? ZODIAC_ORDER.indexOf(tVal) : tVal;
+                            
+                            if (pIdx !== -1 && tIdx !== -1) {
+                                let diff = (tIdx - pIdx + 12) % 12 + 1;
+                                if (diff === 7) aspectingPlanets.push(p);
+                                else if (p === "Saturn" && (diff === 3 || diff === 10)) aspectingPlanets.push(p);
+                                else if (p === "Mangala" && (diff === 4 || diff === 8)) aspectingPlanets.push(p);
+                                else if (p === "Jupiter" && (diff === 5 || diff === 9)) aspectingPlanets.push(p);
                             }
                         });
                     }
 
-                    let txtConj = getConjunctPlanets(ent);
-                    if (txtConj && txtConj !== "-") {
-                        let matches = txtConj.match(/([a-zA-Z]+)\(([\d,]+)\)/g) || [];
-                        matches.forEach(m => {
-                            let parts = m.match(/\(([\d,]+)\)/);
-                            if (parts && parts[1]) {
-                                let rawStrNums = parts[1].split(",");
-                                let placedNum = parseInt(rawStrNums[0], 10); 
-                                
-                                let filteredNums = rawStrNums.map(Number);
-                                filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
-                                
-                                if (filteredNums.length > 0) {
-                                    let formatted = filteredNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
-                                    combinedParts.push(formatted);
+                    const processPlanets = (pList) => {
+                        if (pList.length === 0) return;
+                        
+                        const shortNames = {
+                            "Surya": "Sy", "Chandra": "Ch", "Mangala": "Ma", 
+                            "Jupiter": "Ju", "Saturn": "Sa", "Budha": "Bu", "Venus": "Ve",
+                            "Rahu": "Ra", "Ketu": "Ke"
+                        };
+
+                        if (window.__nadiDbaRaKeSymbols) {
+                            let symbols = [];
+                            pList.forEach(pName => {
+                                let short = shortNames[pName] || pName.substring(0,2);
+                                symbols.push(`<span style="border: 1px solid #10b981; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #10b981; display: inline-block; margin: 1px;">${short}</span>`);
+                            });
+                            combinedParts.push(symbols.join(" "));
+                        } else {
+                            pList.forEach(pName => {
+                                let pNums = [];
+                                let placedNum = parseInt(getPlanetHouse(pName), 10);
+                                if (!isNaN(placedNum)) pNums.push(placedNum);
+
+                                if (pName !== "Rahu" && pName !== "Ketu") {
+                                    let dl = getLordsOf(pName);
+                                    dl = nadiFilterOccupied(dl, removeOccMode);
+                                    if (dl && dl !== "-") {
+                                        dl.split(",").forEach(x => pNums.push(parseInt(x.trim(), 10)));
+                                    }
+
+                                    if (document.getElementById("useConjCusps")?.checked) {
+                                        let dCusps = getCuspalConjunct(pName);
+                                        if(dCusps && dCusps !== "-") {
+                                            dCusps.split(",").forEach(x => pNums.push(parseInt(x.trim(), 10)));
+                                        }
+                                    }
                                 }
-                            }
-                        });
+
+                                pNums = [...new Set(pNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
+                                if (pNums.length > 0) {
+                                    let formatted = pNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
+                                    let short = shortNames[pName] || pName.substring(0,2);
+                                    let finalStr = `<span style="display: inline-block; white-space: nowrap;"><span style="color:#10b981; font-weight:bold;">${short} ( </span>${formatted}<span style="color:#10b981; font-weight:bold;"> )</span></span>`;
+                                    combinedParts.push(finalStr);
+                                }
+                            });
+                        }
+                    };
+
+                    if (window.__nadiDbaRaKeAspect) {
+                        processPlanets(aspectingPlanets);
+                    }
+
+                    if (window.__nadiDbaRaKeConjunct) {
+                        processPlanets(conjunctPlanets);
                     }
 
                     combinedParts = combinedParts.filter(part => part && part !== "-");
@@ -10329,12 +10492,72 @@ const UNIFIED_TEMPLATES = {
                     }).filter(p => p !== "");
 
                     numStr = parts.length > 0 ? parts.join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>") : "-";
+
+                    // --- CONJUNCTION LOGIC FOR NON-NODES ---
+                    if (window.__nadiDbaConjNumber || window.__nadiDbaConjSymbols) {
+                        let txtConj = getConjunctPlanets(ent);
+                        if (txtConj && txtConj !== "-") {
+                            let combinedParts = [];
+                            let matches = txtConj.match(/([a-zA-Z]+)\(([\d,]+)\)/g) || [];
+                            
+							const shortNames = {
+                                "Surya": "Sy", "Chandra": "Ch", "Mangala": "Ma", 
+                                "Jupiter": "Ju", "Saturn": "Sa", "Budha": "Bu", "Venus": "Ve",
+                                "Rahu": "Ra", "Ketu": "Ke"
+                            };
+                            
+                            if (window.__nadiDbaConjSymbols) {
+                                let symbols = [];
+                                matches.forEach(m => {
+                                    let pNameMatch = m.match(/^([a-zA-Z]+)/);
+                                    if (pNameMatch && pNameMatch[1]) {
+                                        let pName = pNameMatch[1];
+                                        let short = shortNames[pName] || pName.substring(0,2);
+                                        symbols.push(`<span style="border: 1px solid #10b981; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #10b981; display: inline-block; margin: 1px;">${short}</span>`);
+                                    }
+                                });
+                                if (symbols.length > 0) {
+                                    combinedParts.push(symbols.join(" "));
+                                }
+                            } else if (window.__nadiDbaConjNumber) {
+                                matches.forEach(m => {
+                                    let pNameMatch = m.match(/^([a-zA-Z]+)/);
+                                    let pName = pNameMatch ? pNameMatch[1] : "";
+                                    
+                                    let cparts = m.match(/\(([\d,]+)\)/);
+                                    if (cparts && cparts[1]) {
+                                        let rawStrNums = cparts[1].split(",");
+                                        let placedNum = parseInt(rawStrNums[0], 10); 
+                                        
+                                        let filteredNums = rawStrNums.map(Number);
+                                        
+                                        if (pName === "Rahu" || pName === "Ketu") {
+                                            filteredNums = [placedNum];
+                                        }
+
+                                        filteredNums = [...new Set(filteredNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
+                                        
+                                        if (filteredNums.length > 0) {
+                                            let formatted = filteredNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
+                                            let short = shortNames[pName] || pName.substring(0,2);
+                                            let finalStr = `<span style="display: inline-block; white-space: nowrap;"><span style="color:#10b981; font-weight:bold;">${short} ( </span>${formatted}<span style="color:#10b981; font-weight:bold;"> )</span></span>`;
+                                            combinedParts.push(finalStr);
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            if (combinedParts.length > 0) {
+                                numStr += " <span style='color:#ecfdf5; font-weight:bold; margin:0 4px;'>+</span> " + combinedParts.join(" <span style='color:#ecfdf5; font-weight:bold; margin:0 4px;'>+</span> ");
+                            }
+                        }
+                    }
                 }
             }
             
-            return `<div style="display:grid; grid-template-columns: 85px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: ${pLabel} - ${numStr}</span></div>`;
+            return `<div style="display:grid; grid-template-columns: 100px auto; margin-bottom:2px; color:${colorStr};"><b>${label}</b><span>: ${pLabel} - ${numStr}</span></div>`;
         }
-
+		
         let sl = getStarLord(planet);
         let sub = getSubLord(planet);
         let starOfSub = sub ? getStarLord(sub) : "";
@@ -10346,9 +10569,7 @@ const UNIFIED_TEMPLATES = {
         let subHasDollar = sub ? getPlanetLabel(sub).includes("$") : false;
         let ssHasDollar = ss ? getPlanetLabel(ss).includes("$") : false;
 
-        // Never hide the main planet/sub/sub-sub numbers based on untenanted status
         let hidePlanetNums = false; 
-        // Only hide the Starlord's numbers if the main planet is untenanted ($)
         let hideSlNums = window.__nadiDbaUntenented && planetHasDollar;
 
         let hideSubNums = false; 
@@ -10396,52 +10617,54 @@ const UNIFIED_TEMPLATES = {
     table.style.background = "transparent";
     table.style.border = "none"; 
     
+    let colSpanTotalTable = 1 + (window.__nadiDbaDasha ? 1 : 0) + (window.__nadiDbaDasha && window.__nadiDbaBukthi ? 1 : 0);
+    let colWidth = (100 / colSpanTotalTable) + "%";
+
     let trHead = document.createElement("tr");
     trHead.style.background = "linear-gradient(90deg, #064e3b 0%, #1e3a8a 50%, #4a044e 100%)";
     let outlineCSS = "-webkit-text-stroke: 1px #000; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;";
     
-    trHead.innerHTML = `
+    let thHTML = `
         <th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#38bdf8; ${outlineCSS}">Dasha</th>
-        <th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#f472b6; ${outlineCSS}">Bukthi</th>
-        <th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#a855f7; ${outlineCSS}">Antara</th>
     `;
+    
+    if (window.__nadiDbaDasha) {
+        thHTML += `<th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#f472b6; ${outlineCSS}">Bukthi</th>`;
+    }
+    if (window.__nadiDbaDasha && window.__nadiDbaBukthi) {
+        thHTML += `<th style="border:2px solid #10b981; padding:12px; font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#a855f7; ${outlineCSS}">Antara</th>`;
+    }
+    
+    trHead.innerHTML = thHTML;
     table.appendChild(trHead);
 
-    // Initial gap between header and first row island
     let initialGap = document.createElement("tr");
-    initialGap.innerHTML = `<td colspan="3" style="height:30px; border:none; background:transparent;"></td>`;
+    initialGap.innerHTML = `<td colspan="${colSpanTotalTable}" style="height:30px; border:none; background:transparent;"></td>`;
     table.appendChild(initialGap);
     
-    let dPlanet = window.__nadiDbaDasha;
     let activeOccMode = window.__nadiDbaRemOcc1 ? 1 : (window.__nadiDbaRemOcc2 ? 2 : 0);
-    let dashaCellHTML = buildNadiCellHTML(dPlanet, activeOccMode, window.__nadiDbaHideUnD);
 
-    if (window.__nadiDbaActiveLevel === "antara") {
-        let bPlanet = window.__nadiDbaBukthi;
-        let bukthiCellHTML = buildNadiCellHTML(bPlanet, activeOccMode, window.__nadiDbaHideUnBA);
-        let aIterOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(bPlanet)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(bPlanet))];
-        
-        aIterOrder.forEach((aPlanet, idx) => {
-            let antaraCellHTML = buildNadiCellHTML(aPlanet, activeOccMode, window.__nadiDbaHideUnBA);
+    if (!window.__nadiDbaDasha) {
+        // Render 1 column: All Dashas
+        fullOrder.forEach((dPlanet, idx) => {
+            let dashaCellHTML = buildNadiCellHTML(dPlanet, activeOccMode, window.__nadiDbaHideUnD);
             let tr = document.createElement("tr");
             tr.style.backgroundColor = "#010a08"; 
             tr.innerHTML = `
-                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${dashaCellHTML}</td>
-                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${bukthiCellHTML}</td>
-                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${antaraCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${dashaCellHTML}</td>
             `;
             table.appendChild(tr);
             
-            // Add spacer to create distinct islands
-            if (idx < aIterOrder.length - 1) {
+            if (idx < fullOrder.length - 1) {
                 let gap = document.createElement("tr");
-                gap.innerHTML = `<td colspan="3" style="height:35px; border:none; background:transparent;"></td>`;
+                gap.innerHTML = `<td style="height:35px; border:none; background:transparent;"></td>`;
                 table.appendChild(gap);
             }
         });
-    } else {
-        let aPlanet = window.__nadiDbaAntara;
-        let antaraCellHTML = window.__nadiDbaShowAntara ? buildNadiCellHTML(aPlanet, activeOccMode, window.__nadiDbaHideUnBA) : "";
+    } else if (!window.__nadiDbaBukthi) {
+        // Render 2 columns: Active Dasha and All Bukthis
+        let dPlanet = window.__nadiDbaDasha;
+        let dashaCellHTML = buildNadiCellHTML(dPlanet, activeOccMode, window.__nadiDbaHideUnD);
         let bIterOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(dPlanet)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(dPlanet))];
 
         bIterOrder.forEach((bPlanet, idx) => {
@@ -10449,19 +10672,57 @@ const UNIFIED_TEMPLATES = {
             let tr = document.createElement("tr");
             tr.style.backgroundColor = "#010a08"; 
             tr.innerHTML = `
-                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${dashaCellHTML}</td>
-                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${bukthiCellHTML}</td>
-                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:33.33%;">${antaraCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${dashaCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${bukthiCellHTML}</td>
             `;
             table.appendChild(tr);
 
-            // Add spacer to create distinct islands
             if (idx < bIterOrder.length - 1) {
                 let gap = document.createElement("tr");
-                gap.innerHTML = `<td colspan="3" style="height:35px; border:none; background:transparent;"></td>`;
+                gap.innerHTML = `<td colspan="2" style="height:35px; border:none; background:transparent;"></td>`;
                 table.appendChild(gap);
             }
         });
+    } else {
+        // Render 3 columns: Active Dasha, Active Bukthi, and All Antaras (or specific if selected)
+        let dPlanet = window.__nadiDbaDasha;
+        let bPlanet = window.__nadiDbaBukthi;
+        let dashaCellHTML = buildNadiCellHTML(dPlanet, activeOccMode, window.__nadiDbaHideUnD);
+        let bukthiCellHTML = buildNadiCellHTML(bPlanet, activeOccMode, window.__nadiDbaHideUnBA);
+        
+        if (!window.__nadiDbaAntara) {
+            let aIterOrder = [...DASHA_ORDER.slice(DASHA_ORDER.indexOf(bPlanet)), ...DASHA_ORDER.slice(0, DASHA_ORDER.indexOf(bPlanet))];
+            
+            aIterOrder.forEach((aPlanet, idx) => {
+                let antaraCellHTML = buildNadiCellHTML(aPlanet, activeOccMode, window.__nadiDbaHideUnBA);
+                let tr = document.createElement("tr");
+                tr.style.backgroundColor = "#010a08"; 
+                tr.innerHTML = `
+                    <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${dashaCellHTML}</td>
+                    <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${bukthiCellHTML}</td>
+                    <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${antaraCellHTML}</td>
+                `;
+                table.appendChild(tr);
+                
+                if (idx < aIterOrder.length - 1) {
+                    let gap = document.createElement("tr");
+                    gap.innerHTML = `<td colspan="3" style="height:35px; border:none; background:transparent;"></td>`;
+                    table.appendChild(gap);
+                }
+            });
+        } else {
+            // Render specific D-B-A only
+            let aPlanet = window.__nadiDbaAntara;
+            let antaraCellHTML = buildNadiCellHTML(aPlanet, activeOccMode, window.__nadiDbaHideUnBA);
+            let tr = document.createElement("tr");
+            tr.style.backgroundColor = "#010a08"; 
+            tr.innerHTML = `
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${dashaCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${bukthiCellHTML}</td>
+                <td style="border:2px solid #10b981; padding:15px; vertical-align:top; width:${colWidth};">${antaraCellHTML}</td>
+            `;
+            table.appendChild(tr);
+        }
     }
 
     innerWrap.appendChild(table);
@@ -10479,12 +10740,6 @@ if (typeof window.__oldBuildVimForNadi === "undefined") {
 // Initial render attempt
 setTimeout(buildNadiDbaMixer, 200);
 </script>
-
-
-
-
-
-
 
 
 
