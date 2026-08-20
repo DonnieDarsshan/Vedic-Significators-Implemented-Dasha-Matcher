@@ -458,6 +458,83 @@ table tr.clicked-row:hover td * {
   text-shadow: 1px 1px 3px #000, 0px 0px 5px #000 !important;
 }
 
+/* --- PERMANENT TOP RIGHT BAR --- */
+#permaBarWrapper {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: row-reverse;
+  z-index: 9999;
+}
+
+#permaBarToggle {
+  background: linear-gradient(135deg,#10b981,#d4af37);
+  color: #021b16;
+  border: 1px solid #10b981;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 4px 8px; /* Reduced padding */
+  font-size: 12px;  /* Smaller font */
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.6);
+  margin-left: 8px;
+  margin-top: 0;
+  min-width: 32px;  /* Reduced width */
+  text-align: center;
+  transition: all 0.2s;
+}
+
+#permaBarContent {
+  background: linear-gradient(180deg,#021b16,#010a08);
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Reduced gap */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+  overflow: hidden;
+  
+  /* Animation properties for horizontal expansion */
+  transition: max-width 0.3s ease, opacity 0.3s ease, padding 0.3s ease, border 0.3s ease;
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  padding: 4px 0;
+  border-width: 0;
+}
+
+#permaBarContent.expanded {
+  max-width: 800px;
+  opacity: 1;
+  padding: 4px 12px; /* Reduced padding */
+  border-width: 1px;
+}
+
+#permaBarContent label {
+  font-size: 11px; /* Smaller text */
+  font-weight: 900;
+  color: #facc15;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+#permaBarContent select {
+  background: #010a08;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  padding: 1px 4px; /* Reduced padding */
+  font-size: 11px;  /* Smaller text */
+  font-weight: 700;
+}
+
+
+
+
+
 </style>
 
 
@@ -471,6 +548,18 @@ table tr.clicked-row:hover td * {
 </head>
 
 <body>
+
+<!-- PERMANENT TOP RIGHT BAR -->
+<div id="permaBarWrapper">
+    <button id="permaBarToggle" onclick="togglePermaBar()">[ ⚙ ]</button>
+    <div id="permaBarContent">
+        <label><input type="checkbox" id="permaSign"> Sign</label>
+        <label><input type="checkbox" id="permaKP"> KP</label>
+        <label><input type="checkbox" id="permaShift"> Shift</label>
+        <label><input type="checkbox" id="permaNode"> Node</label>
+        <select id="permaPivot"></select>
+    </div>
+</div>
 
 <h2>Vedic Significators To Dasha Matcher</h2>
 
@@ -1645,11 +1734,10 @@ function getCuspalConjunct(entity){
   const data=window.__lastSwissData;
   if(!data || (!data.cusps && !document.getElementById("equalMode")?.checked)) return "-";
 
-  let result=[];
+  let rawCusps = [];
 
   for(let i=1; i<=12; i++){
     let cuspAbs = getCuspAbsolute(i);
-    let c = i.toString();
     
     if(typeof cuspAbs!=="number") continue;
 
@@ -1658,13 +1746,15 @@ function getCuspalConjunct(entity){
     let diff=Math.abs(abs-shifted);
     if(diff>180) diff=360-diff;
 
-    // CHANGED FROM 3 TO 5
     if(diff<=4){
-      result.push(c);
+      rawCusps.push(i); // Push as a number so it can be rotated
     }
   }
 
-  return result.join(",") || "-";
+  // Rotate the raw absolute cusps based on the active Pivot Planet/CSL
+  let rotatedCusps = rotateHouseList(rawCusps);
+
+  return rotatedCusps.length ? rotatedCusps.join(",") : "-";
 }
 
 
@@ -9599,6 +9689,7 @@ if (typeof window.__nadiDbaRaKeAspect === 'undefined') window.__nadiDbaRaKeAspec
 if (typeof window.__nadiDbaRaKeConjunct === 'undefined') window.__nadiDbaRaKeConjunct = true; 
 if (typeof window.__nadiDbaRaKeSymbols === 'undefined') window.__nadiDbaRaKeSymbols = false; 
 if (typeof window.__nadiDbaRaKeSign2Sign === 'undefined') window.__nadiDbaRaKeSign2Sign = true; 
+if (typeof window.__nadiDbaDisableRaKe7thAsp === 'undefined') window.__nadiDbaDisableRaKe7thAsp = true;
 if (typeof window.__nadiDbaConjNumber === 'undefined') window.__nadiDbaConjNumber = true; 
 if (typeof window.__nadiDbaConjSymbols === 'undefined') window.__nadiDbaConjSymbols = false; 
 if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = true; 
@@ -9610,6 +9701,7 @@ if (typeof window.__nadiDbaHideSubSub === 'undefined') window.__nadiDbaHideSubSu
 
 // Untenented Logic State
 if (typeof window.__nadiDbaUntenented === 'undefined') window.__nadiDbaUntenented = false; 
+if (typeof window.__nadiDbaUntenentedX === 'undefined') window.__nadiDbaUntenentedX = false;
 
 function buildNadiDbaMixer() {
     let wrap = document.getElementById("nadiDbaMixerWrap");
@@ -10003,15 +10095,35 @@ function buildNadiDbaMixer() {
     hideSubSubLbl.appendChild(document.createTextNode(" Hide Sub-Sub"));
     hideOptionsWrap.appendChild(hideSubSubLbl);
 
-    let untenentedLbl = document.createElement("label");
+    
+	
+	let untenentedLbl = document.createElement("label");
     untenentedLbl.style = "font-weight:900; color:#facc15; cursor:pointer; font-size:15px; border:1px solid #facc15; padding:4px 10px; border-radius:4px; background:#010a08;";
     let untenentedChk = document.createElement("input");
     untenentedChk.type = "checkbox";
     untenentedChk.checked = window.__nadiDbaUntenented;
-    untenentedChk.onchange = (e) => { window.__nadiDbaUntenented = e.target.checked; buildNadiDbaMixer(); };
+    untenentedChk.onchange = (e) => { 
+        window.__nadiDbaUntenented = e.target.checked; 
+        if (e.target.checked) window.__nadiDbaUntenentedX = false; // Toggle
+        buildNadiDbaMixer(); 
+    };
     untenentedLbl.appendChild(untenentedChk);
-    untenentedLbl.appendChild(document.createTextNode(" Untenented"));
+    untenentedLbl.appendChild(document.createTextNode(" Unt O"));
     hideOptionsWrap.appendChild(untenentedLbl);
+
+    let untXLbl = document.createElement("label");
+    untXLbl.style = "font-weight:900; color:#facc15; cursor:pointer; font-size:15px; border:1px solid #facc15; padding:4px 10px; border-radius:4px; background:#010a08;";
+    let untXChk = document.createElement("input");
+    untXChk.type = "checkbox";
+    untXChk.checked = window.__nadiDbaUntenentedX;
+    untXChk.onchange = (e) => { 
+        window.__nadiDbaUntenentedX = e.target.checked; 
+        if (e.target.checked) window.__nadiDbaUntenented = false; // Toggle
+        buildNadiDbaMixer(); 
+    };
+    untXLbl.appendChild(untXChk);
+    untXLbl.appendChild(document.createTextNode(" Unt X"));
+    hideOptionsWrap.appendChild(untXLbl);
 
     innerWrap.appendChild(optionsWrap);
     innerWrap.appendChild(hideOptionsWrap);
@@ -10143,6 +10255,12 @@ function buildNadiDbaMixer() {
     rakeWrap.appendChild(createRaKeOption("RaKe Conjunct", "__nadiDbaRaKeConjunct", "#f472b6"));
     rakeWrap.appendChild(createRaKeOption("RaKe Symbols", "__nadiDbaRaKeSymbols", "#facc15"));
     rakeWrap.appendChild(createRaKeOption("RaKe Sign2Sign", "__nadiDbaRaKeSign2Sign", "#ecfdf5"));
+    rakeWrap.appendChild(createRaKeOption("Disable RaKe 7th Asp", "__nadiDbaDisableRaKe7thAsp", "#ef4444"));
+
+    innerWrap.appendChild(rakeWrap);
+
+    let conjWrap = document.createElement("div");
+    conjWrap.style = "display:flex; justify-content:center; gap:20px; margin-bottom:25px; flex-wrap:wrap; padding: 15px; border: 1px dashed #10b981; background: #010a08; border-radius: 8px;";
 
     // Conj Number Mutually Exclusive Toggle
     let conjNumLbl = document.createElement("label");
@@ -10157,7 +10275,7 @@ function buildNadiDbaMixer() {
     };
     conjNumLbl.appendChild(conjNumChk);
     conjNumLbl.appendChild(document.createTextNode("Conj Number"));
-    rakeWrap.appendChild(conjNumLbl);
+    conjWrap.appendChild(conjNumLbl);
 
     // Conj Symbols Mutually Exclusive Toggle
     let conjSymLbl = document.createElement("label");
@@ -10172,9 +10290,9 @@ function buildNadiDbaMixer() {
     };
     conjSymLbl.appendChild(conjSymChk);
     conjSymLbl.appendChild(document.createTextNode("Conj Symbols"));
-    rakeWrap.appendChild(conjSymLbl);
+    conjWrap.appendChild(conjSymLbl);
     
-    innerWrap.appendChild(rakeWrap);
+    innerWrap.appendChild(conjWrap);
 
    
    
@@ -10414,7 +10532,13 @@ function buildNadiDbaMixer() {
                             
                             if (pIdx !== -1 && tIdx !== -1) {
                                 let diff = (tIdx - pIdx + 12) % 12 + 1;
-                                if (diff === 7) aspectingPlanets.push(p);
+                                if (diff === 7) {
+                                    if (window.__nadiDbaDisableRaKe7thAsp && (ent === "Rahu" || ent === "Ketu")) {
+                                        // Do not consider 7th aspect for Rahu or Ketu
+                                    } else {
+                                        aspectingPlanets.push(p);
+                                    }
+                                }
                                 else if (p === "Saturn" && (diff === 3 || diff === 10)) aspectingPlanets.push(p);
                                 else if (p === "Mangala" && (diff === 4 || diff === 8)) aspectingPlanets.push(p);
                                 else if (p === "Jupiter" && (diff === 5 || diff === 9)) aspectingPlanets.push(p);
@@ -10564,25 +10688,73 @@ function buildNadiDbaMixer() {
         let ss = getSubSubLord(planet);
         let starOfSs = ss ? getStarLord(ss) : "";
 
-        // --- UNTENENTED LOGIC CHECKS ---
+        
+		
+		
+		
+		// --- UNTENENTED LOGIC CHECKS ---
         let planetHasDollar = planet ? getPlanetLabel(planet).includes("$") : false;
         let subHasDollar = sub ? getPlanetLabel(sub).includes("$") : false;
         let ssHasDollar = ss ? getPlanetLabel(ss).includes("$") : false;
 
         let hidePlanetNums = false; 
-        let hideSlNums = window.__nadiDbaUntenented && planetHasDollar;
-
+        let hideSlNums = false;
         let hideSubNums = false; 
-        let hideStarSubNums = window.__nadiDbaUntenented && subHasDollar;
-
+        let hideStarSubNums = false;
         let hideSsNums = false; 
-        let hideStarSsNums = window.__nadiDbaUntenented && ssHasDollar;
+        let hideStarSsNums = false;
+
+        // "Unt O" Original Logic
+        if (window.__nadiDbaUntenented) {
+            hideSlNums = planetHasDollar;
+            hideStarSubNums = subHasDollar;
+            hideStarSsNums = ssHasDollar;
+        } 
+        // "Unt X" New Logic
+        else if (window.__nadiDbaUntenentedX) {
+            // Planet Level
+            if (planet && sl && planet === sl) {
+                hidePlanetNums = false;
+                hideSlNums = true;
+            } else {
+                hidePlanetNums = !planetHasDollar;
+                hideSlNums = planetHasDollar;
+            }
+
+            // Sublord Level
+            if (sub && starOfSub && sub === starOfSub) {
+                hideSubNums = false;
+                hideStarSubNums = true;
+            } else {
+                hideSubNums = !subHasDollar;
+                hideStarSubNums = subHasDollar;
+            }
+
+            // Sub-Sub Level
+            if (ss && starOfSs && ss === starOfSs) {
+                hideSsNums = false;
+                hideStarSsNums = true;
+            } else {
+                hideSsNums = !ssHasDollar;
+                hideStarSsNums = ssHasDollar;
+            }
+        }
 
         let c1 = "#facc15"; 
         let c2 = "#ef4444"; 
         let c3 = "#a855f7"; 
         
         const sepHTML = `<div style="border-bottom:1px solid #475569; margin:6px 0;"></div>`;
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
         
         let sublordHTML = !window.__nadiDbaHideEverything ? makeLine("Sublord", sub, c2, hideSubNums) : "";
         let starSubHTML = (!window.__nadiDbaHideStarSub && !window.__nadiDbaHideEverything) ? makeLine("⭐ Sublord", starOfSub, c2, hideStarSubNums) : "";
@@ -10740,6 +10912,111 @@ if (typeof window.__oldBuildVimForNadi === "undefined") {
 // Initial render attempt
 setTimeout(buildNadiDbaMixer, 200);
 </script>
+
+
+
+
+
+
+
+<script>
+/* =========================================================
+   PERMANENT BAR LOGIC & SYNCHRONIZATION (BUG FIX V2)
+   ========================================================= */
+function togglePermaBar() {
+    const content = document.getElementById("permaBarContent");
+    const btn = document.getElementById("permaBarToggle");
+    content.classList.toggle("expanded");
+    btn.innerText = content.classList.contains("expanded") ? "[ X ]" : "[ ⚙ ]";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const mainSign = document.getElementById("sign2signMode");
+    const mainKP = document.getElementById("kpMode");
+    const mainShift = document.getElementById("originalASC");
+    const mainNode = document.getElementById("trueNode");
+    const mainPivot = document.getElementById("kundaliPivot");
+    const mainVedic = document.getElementById("vedicMode"); // Tracked for mutual exclusion
+
+    const permaSign = document.getElementById("permaSign");
+    const permaKP = document.getElementById("permaKP");
+    const permaShift = document.getElementById("permaShift");
+    const permaNode = document.getElementById("permaNode");
+    const permaPivot = document.getElementById("permaPivot");
+
+    // Populate Permanent Pivot Dropdown
+    const planetList = [
+        "Lagna", "Surya", "Chandra", "Mangala", "Rahu", "Jupiter", "Saturn", 
+        "Budha", "Ketu", "Venus", "1 CSL", "2 CSL", "3 CSL", "4 CSL", "5 CSL", 
+        "6 CSL", "7 CSL", "8 CSL", "9 CSL", "10 CSL", "11 CSL", "12 CSL"
+    ];
+    
+    if (permaPivot) {
+        planetList.forEach(p => {
+            let opt = document.createElement("option");
+            opt.value = p;
+            opt.text = p;
+            permaPivot.appendChild(opt);
+        });
+    }
+
+    // Master Sync Function: Forces Perma UI to mirror Main UI exactly
+    function syncPermaToMain() {
+        if (mainSign && permaSign) permaSign.checked = mainSign.checked;
+        if (mainKP && permaKP) permaKP.checked = mainKP.checked;
+        if (mainShift && permaShift) permaShift.checked = mainShift.checked;
+        if (mainNode && permaNode) permaNode.checked = mainNode.checked;
+        if (mainPivot && permaPivot && document.activeElement !== permaPivot) {
+            permaPivot.value = mainPivot.value;
+        }
+    }
+
+    // Remote Control Checkbox Linker
+    function linkCheckbox(permaBox, mainBox) {
+        if (!permaBox || !mainBox) return;
+        
+        // When clicking Perma Bar: Prevent its own toggle, simulate clicking the main box instead.
+        permaBox.addEventListener("click", (e) => {
+            e.preventDefault(); 
+            mainBox.click(); 
+            setTimeout(syncPermaToMain, 20); // Sync states back immediately
+        });
+
+        // When main box changes normally, sync the Perma Bar
+        mainBox.addEventListener("change", () => {
+            setTimeout(syncPermaToMain, 20);
+        });
+    }
+
+    linkCheckbox(permaSign, mainSign);
+    linkCheckbox(permaKP, mainKP);
+    linkCheckbox(permaShift, mainShift);
+    linkCheckbox(permaNode, mainNode);
+
+    // Dropdown Sync requires standard change event dispatch
+    if (permaPivot && mainPivot) {
+        permaPivot.addEventListener("change", (e) => {
+            mainPivot.value = e.target.value;
+            mainPivot.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        mainPivot.addEventListener("change", () => {
+            permaPivot.value = mainPivot.value;
+        });
+    }
+
+    // Attach listener to Vedic mode to catch mode unchecking
+    if (mainVedic) {
+        mainVedic.addEventListener("change", () => {
+            setTimeout(syncPermaToMain, 20);
+        });
+    }
+
+    // Initial load sync
+    setTimeout(syncPermaToMain, 500);
+});
+</script>
+
+
 
 
 
