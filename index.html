@@ -911,7 +911,7 @@ table tr.clicked-row:hover td * {
       <label><input type="checkbox" id="ignoreUntenanted"> UNTENTED</label>
   </div>
   <div style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:20px; width:100%; border-top:1px dashed #064e3b; padding-top:10px;">
-      <label style="color:#10b981; border:1px solid #10b981; padding:4px 10px; border-radius:6px; background:#010a08;"><input type="checkbox" id="rahuKetuSpecial" checked> Ra/Ke Special Rule</label>
+      <label style="color:#10b981; border:1px solid #10b981; padding:4px 10px; border-radius:6px; background:#010a08;"><input type="checkbox" id="rahuKetuSpecial"> Ra/Ke Special Rule</label>
       <label style="color:#10b981; border:1px solid #10b981; padding:4px 10px; border-radius:6px; background:#010a08;"><input type="checkbox" id="s2sAspect" checked> S2S Asp</label>
       <label><input type="checkbox" id="includeRaKeAspectedBy" checked> Include Aspected By</label>
       <label><input type="checkbox" id="dashaOriginalToggle" checked> Dasha Original</label>
@@ -2745,8 +2745,7 @@ function clearFetchData() {
                 window.__dba3NormalView = true;
                 window.__dba3SplitView = false;
                 window.__dba3SplitView2 = false;
-                window.__dba3AddDispositor = false;
-                window.__dba3RemoveDuplicates = true;
+				window.__dba3RemoveDuplicates = true;
                 window.__dba3OccD = true;
                 window.__dba3OccB = false;
                 window.__dba3OccA = true;
@@ -2758,14 +2757,13 @@ function clearFetchData() {
                 // --- RESET FOR NAKSHATRA NADI DBA MIXER ---
 				window.__nadiDbaExpanded = false;
 				window.__nadiDbaDasha = typeof getCurrentMahadasha === "function" ? getCurrentMahadasha("Chandra") : null;
-				window.__nadiDbaBukthi = typeof getCurrentBhukti === "function" ? getCurrentBhukti("Chandra") : null;
+				window.__nadiDbaBukthi = null; // <--- This ensures ONLY Dasha is selected
 				window.__nadiDbaAntara = null;
                 window.__nadiDbaActiveLevel = "antara";
                 window.__nadiDbaTemplate = "manual";
                 window.__nadiDbaHideUnD = false;
                 window.__nadiDbaHideUnBA = false;
-                window.__nadiDbaRaKeSpecial = false;
-                window.__nadiDbaUseCuspal = true;
+				window.__nadiDbaUseCuspal = true;
                 window.__nadiDbaRemOcc1 = false;
                 window.__nadiDbaRemOcc2 = true;
                 if (window.__nadiDbaPosNums) window.__nadiDbaPosNums.clear();
@@ -2792,18 +2790,18 @@ function clearFetchData() {
 
                // "rahuKetuSpecial" is completely REMOVED from defaultCheckedIds
 			  const defaultCheckedIds = [
-				"kpMode", "trueNode", "originalASC",
-				"useConjCusps", "ignoreRaKeLords", "hideVimDates", 
-				"useMonthNames", "knVimToggle", "birthStartToggle", 
-				"showAgeYears", "hideBhuktiAge",
-				"rahuKetuSpecial", "dashaOriginalToggle", "includeRaKeAspectedBy", "removeOccupied"
-			];
-			const defaultUncheckedIds = [
-				"sign2signMode", "vedicMode", 
-				"showCusps", "useConjPlanets", "useAspects",
-				"includeRaKeCuspal", "splitSig", "splitSig2",
-				"ignoreUntenanted", "hideAntaraRest", "equalMode"
-			];
+					"kpMode", "trueNode", "originalASC",
+					"useConjCusps", "ignoreRaKeLords", "hideVimDates", 
+					"useMonthNames", "knVimToggle", "birthStartToggle", 
+					"showAgeYears", "hideBhuktiAge",
+					"dashaOriginalToggle", "includeRaKeAspectedBy", "removeOccupied"
+				];
+				const defaultUncheckedIds = [
+					"sign2signMode", "vedicMode", 
+					"showCusps", "useConjPlanets", "useAspects",
+					"includeRaKeCuspal", "splitSig", "splitSig2",
+					"ignoreUntenanted", "hideAntaraRest", "equalMode"
+				];
 
                 defaultCheckedIds.forEach(id => { let el = document.getElementById(id); if(el) el.checked = true; });
                 defaultUncheckedIds.forEach(id => { let el = document.getElementById(id); if(el) el.checked = false; });
@@ -3026,7 +3024,7 @@ function clearFetchData() {
                 // --- RESET FOR NAKSHATRA NADI DBA MIXER ---
 				window.__nadiDbaExpanded = false;
 				window.__nadiDbaDasha = typeof getCurrentMahadasha === "function" ? getCurrentMahadasha("Chandra") : null;
-				window.__nadiDbaBukthi = typeof getCurrentBhukti === "function" ? getCurrentBhukti("Chandra") : null;
+				window.__nadiDbaBukthi = null;
 				window.__nadiDbaAntara = null;
                 window.__nadiDbaActiveLevel = "antara";
                 window.__nadiDbaTemplate = "manual";
@@ -3100,9 +3098,7 @@ function loadSwissJSON(){
       window.__mixerBukthiPlanetState = true;
       window.__mixerBukthiStarlordState = true;
       window.__mixerFourFoldState = true; 
-      window.__mixerAddDispositorState = false; 
-      window.__mixerRaKeForcedOff = true;
-      window.__mixerOccD = true;
+	  window.__mixerOccD = true;
       window.__mixerOccB = true;
       window.__mixerOccA = true;
       window.__dbaMixerExpanded = false;
@@ -3133,11 +3129,12 @@ function loadSwissJSON(){
       if (window.__dba3ActiveHighlightNums) window.__dba3ActiveHighlightNums.clear();
       if (window.__dba3NegativeHighlightNums) window.__dba3NegativeHighlightNums.clear();
 
-      // --- RESET FOR NAKSHATRA NADI DBA MIXER ---
-	window.__nadiDbaExpanded = false;
-	window.__nadiDbaDasha = typeof getCurrentMahadasha === "function" ? getCurrentMahadasha("Chandra") : null;
-	window.__nadiDbaBukthi = typeof getCurrentBhukti === "function" ? getCurrentBhukti("Chandra") : null;
-	window.__nadiDbaAntara = null;
+      
+	// --- RESET FOR NAKSHATRA NADI DBA MIXER ---
+	  window.__nadiDbaExpanded = false;
+	  window.__nadiDbaDasha = typeof getCurrentMahadasha === "function" ? getCurrentMahadasha("Chandra") : null;
+	  window.__nadiDbaBukthi = null;
+	  window.__nadiDbaAntara = null;
       window.__nadiDbaActiveLevel = "antara";
       window.__nadiDbaTemplate = "manual";
       window.__nadiDbaHideUnD = false;
@@ -5168,7 +5165,7 @@ const UNIFIED_TEMPLATES = {
 
   // --- EDUCATION ---
   education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
-  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
+  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [4, 7, 11], neg: [5, 8 ,12], note: "" },
 
   // --- CAREER, JOB & BUSINESS ---
   career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
@@ -7526,7 +7523,7 @@ const UNIFIED_TEMPLATES = {
 
   // --- EDUCATION ---
   education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
-  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
+  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [4, 7, 11], neg: [5, 8 ,12], note: "" },
 
   // --- CAREER, JOB & BUSINESS ---
   career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
@@ -8354,7 +8351,7 @@ const UNIFIED_TEMPLATES = {
 
   // --- EDUCATION ---
   education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
-  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
+  Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [4, 7, 11], neg: [5, 8 ,12], note: "" },
 
   // --- CAREER, JOB & BUSINESS ---
   career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
@@ -9664,9 +9661,9 @@ if (!document.getElementById("nadi-click-override")) {
 // 1. Initialize Global States
 if (typeof window.__nadiDbaExpanded === 'undefined') window.__nadiDbaExpanded = false;
 
-// Default configuration: Dasha - Bukthi selected by default
+// Default configuration: Dasha selected by default
 if (typeof window.__nadiDbaDasha === 'undefined') window.__nadiDbaDasha = getCurrentMahadasha("Chandra");
-if (typeof window.__nadiDbaBukthi === 'undefined') window.__nadiDbaBukthi = getCurrentBhukti("Chandra");
+if (typeof window.__nadiDbaBukthi === 'undefined') window.__nadiDbaBukthi = null;
 if (typeof window.__nadiDbaAntara === 'undefined') window.__nadiDbaAntara = null;
 
 if (typeof window.__nadiDbaPosNums === 'undefined') window.__nadiDbaPosNums = new Set();
@@ -9692,7 +9689,7 @@ if (typeof window.__nadiDbaRaKeSign2Sign === 'undefined') window.__nadiDbaRaKeSi
 if (typeof window.__nadiDbaDisableRaKe7thAsp === 'undefined') window.__nadiDbaDisableRaKe7thAsp = true;
 if (typeof window.__nadiDbaConjNumber === 'undefined') window.__nadiDbaConjNumber = true; 
 if (typeof window.__nadiDbaConjSymbols === 'undefined') window.__nadiDbaConjSymbols = false; 
-if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = true; 
+if (typeof window.__nadiDbaShowPlaced === 'undefined') window.__nadiDbaShowPlaced = false; 
 
 // Hide/Show Options for Sub and Sub-Sub Levels
 if (typeof window.__nadiDbaHideEverything === 'undefined') window.__nadiDbaHideEverything = true; 
@@ -9768,7 +9765,7 @@ function buildNadiDbaMixer() {
       manual: { name: "Manual Entry", pos: [], support: [], neg: [], note: "" },
       even_odd: { name: "Even-Odd", pos: [2, 4, 6, 8, 10, 12], support: [8, 12], neg: [1, 3, 5, 7, 9, 11], note: "" },
       education: { name: "Education", pos: [4, 5, 9, 11], support: [1, 2, 7, 10], neg: [3, 6, 8, 12], note: "Karaka: Jupiter, Budha" },
-      Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [3, 4, 7, 11], neg: [], note: "" },
+      Job: { name: "Job with Monthly Salary", pos: [2, 6, 10], support: [4, 7, 11], neg: [5, 8 ,12], note: "" },
       career: { name: "Profession & Business", pos: [2, 6, 10, 11], support: [4, 7], neg: [5, 8, 12], note: "Karaka: Saturn" },
       job_change: { name: "Job Change", pos: [3, 5, 6, 9], support: [], neg: [], note: "" },
       transfer: { name: "Transfer", pos: [3, 10, 12], support: [], neg: [], note: "" },
@@ -9860,6 +9857,18 @@ function buildNadiDbaMixer() {
     templateLabel.appendChild(tSelect);
     templateRow.appendChild(templateLabel);
 
+    let clearAllBtn = document.createElement("button");
+    clearAllBtn.innerHTML = "🧹 CLEAR ALL";
+    clearAllBtn.style = "background:linear-gradient(135deg, #475569, #1e293b); color:#ffffff; border:1px solid #ffffff; padding:4px 12px; font-weight:900; cursor:pointer; border-radius:4px; box-shadow: 0 0 5px #475569;";
+    clearAllBtn.onclick = () => { 
+        window.__nadiDbaPosNums.clear(); 
+        window.__nadiDbaSupportNums.clear(); 
+        window.__nadiDbaNegNums.clear(); 
+        window.__nadiDbaTemplate = "manual"; 
+        buildNadiDbaMixer(); 
+    };
+    templateRow.appendChild(clearAllBtn);
+
     let noteDisplayWrap = document.createElement("div");
     noteDisplayWrap.style = "width:100%; text-align:center; padding-top:8px;";
     let currentNote = UNIFIED_TEMPLATES[window.__nadiDbaTemplate]?.note || "";
@@ -9908,12 +9917,16 @@ function buildNadiDbaMixer() {
         let btn = document.createElement("button");
         btn.innerHTML = i;
         btn.style = window.__nadiDbaPosNums.has(i) 
-            ? "background:#facc15; color:#000; font-weight:900; border:2px solid #000; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #facc15;"
+            ? "background:#002b00; color:#66ff00; font-weight:900; border:2px solid #66ff00; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #66ff00;"
             : "background:#010a08; color:#10b981; font-weight:900; border:1px solid #10b981; padding:6px 14px; cursor:pointer; border-radius:4px;";
         
         btn.onclick = () => {
             if (window.__nadiDbaPosNums.has(i)) window.__nadiDbaPosNums.delete(i);
-            else { window.__nadiDbaPosNums.add(i); window.__nadiDbaNegNums.delete(i); }
+            else { 
+                window.__nadiDbaPosNums.add(i); 
+                window.__nadiDbaNegNums.delete(i); 
+                window.__nadiDbaSupportNums.delete(i);
+            }
             window.__nadiDbaTemplate = "manual"; buildNadiDbaMixer();
         };
         posRow.appendChild(btn);
@@ -9938,12 +9951,16 @@ function buildNadiDbaMixer() {
         let btn = document.createElement("button");
         btn.innerHTML = i;
         btn.style = window.__nadiDbaSupportNums.has(i) 
-            ? "background:#38bdf8; color:#000; font-weight:900; border:2px solid #000; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #38bdf8;"
+            ? "background:#003333; color:#00ffff; font-weight:900; border:2px solid #00ffff; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #00ffff;"
             : "background:#010a08; color:#10b981; font-weight:900; border:1px solid #10b981; padding:6px 14px; cursor:pointer; border-radius:4px;";
         
         btn.onclick = () => {
             if (window.__nadiDbaSupportNums.has(i)) window.__nadiDbaSupportNums.delete(i);
-            else { window.__nadiDbaSupportNums.add(i); window.__nadiDbaNegNums.delete(i); window.__nadiDbaPosNums.delete(i); }
+            else { 
+                window.__nadiDbaSupportNums.add(i); 
+                window.__nadiDbaNegNums.delete(i); 
+                window.__nadiDbaPosNums.delete(i); 
+            }
             window.__nadiDbaTemplate = "manual"; buildNadiDbaMixer();
         };
         supRow.appendChild(btn);
@@ -9968,12 +9985,17 @@ function buildNadiDbaMixer() {
         let btn = document.createElement("button");
         btn.innerHTML = i;
         btn.style = window.__nadiDbaNegNums.has(i) 
-            ? "background:#8b0000; color:#ffffff; font-weight:900; border:2px solid #000; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #8b0000;"
+            ? "background:#330000; color:#ff4d4d; font-weight:900; border:2px solid #ff4d4d; padding:6px 14px; cursor:pointer; border-radius:4px; box-shadow: 0 0 8px #ff4d4d;"
             : "background:#010a08; color:#10b981; font-weight:900; border:1px solid #10b981; padding:6px 14px; cursor:pointer; border-radius:4px;";
         
         btn.onclick = () => {
-            if (window.__nadiDbaNegNums.has(i)) window.__nadiDbaNegNums.delete(i);
-            else { window.__nadiDbaNegNums.add(i); window.__nadiDbaPosNums.delete(i); }
+            if (window.__nadiDbaNegNums.has(i)) { 
+                window.__nadiDbaNegNums.delete(i); 
+            } else { 
+                window.__nadiDbaNegNums.add(i); 
+                window.__nadiDbaPosNums.delete(i); 
+                window.__nadiDbaSupportNums.delete(i); 
+            }
             window.__nadiDbaTemplate = "manual"; buildNadiDbaMixer();
         };
         negRow.appendChild(btn);
@@ -10292,6 +10314,17 @@ function buildNadiDbaMixer() {
     conjSymLbl.appendChild(document.createTextNode("Conj Symbols"));
     conjWrap.appendChild(conjSymLbl);
     
+    // --- NEW: Currently Running Display ---
+    let tempCurrD = getCurrentMahadasha("Chandra") || "Unknown";
+    let tempCurrB = getCurrentBhukti("Chandra") || "Unknown";
+    let tempCurrA = getCurrentAntara("Chandra") || "Unknown";
+    
+    let currentRunDiv = document.createElement("div");
+    // Styles for the outline bar
+    currentRunDiv.style = "font-weight:900; color:#facc15; font-size:16px; border:1px solid #facc15; padding:6px 14px; border-radius:4px; background:#021b16; display:flex; align-items:center; margin-left:15px;";
+    currentRunDiv.innerHTML = `Currently Running = <span style="color:#38bdf8; margin-left:6px;">${tempCurrD}</span>&nbsp;-&nbsp;<span style="color:#f472b6">${tempCurrB}</span>&nbsp;-&nbsp;<span style="color:#a855f7">${tempCurrA}</span>`;
+    conjWrap.appendChild(currentRunDiv);
+
     innerWrap.appendChild(conjWrap);
 
    
@@ -10400,11 +10433,11 @@ function buildNadiDbaMixer() {
             }
 
             if (window.__nadiDbaNegNums.has(n)) {
-                return `<span style="background-color:#8b0000; color:#ffffff; padding:1px 5px; border:1px solid #ffffff; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
+                return `<span style="background-color:#330000; color:#ff4d4d; padding:1px 5px; border:1px solid #ff4d4d; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
             } else if (window.__nadiDbaSupportNums.has(n)) {
-                return `<span style="background-color:#000; color:#38bdf8; padding:1px 5px; border:1px solid #38bdf8; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
+                return `<span style="background-color:#003333; color:#00ffff; padding:1px 5px; border:1px solid #00ffff; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
             } else if (window.__nadiDbaPosNums.has(n)) {
-                return `<span style="background-color:#000; color:#facc15; padding:1px 5px; border:1px solid #facc15; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
+                return `<span style="background-color:#002b00; color:#66ff00; padding:1px 5px; border:1px solid #66ff00; border-radius:3px; font-weight:bold; display:inline-block; margin: 1px;">${n}</span>`;
             }
             if (hideUnselected) return "";
             return `<span style="margin: 0 1px;">${n}</span>`;
@@ -10473,6 +10506,13 @@ function buildNadiDbaMixer() {
                         let sign = getPlanetSign(ent);
                         let disp = SIGN_LORDS[sign];
                         if (disp) {
+                            const shortNames = {
+                                "Surya": "Sy", "Chandra": "Ch", "Mangala": "Ma", 
+                                "Jupiter": "Ju", "Saturn": "Sa", "Budha": "Bu", "Venus": "Ve",
+                                "Rahu": "Ra", "Ketu": "Ke"
+                            };
+                            let dispShort = shortNames[disp] || disp.substring(0,2);
+                            
                             let dispNums = [];
                             let dh = getPlanetHouse(disp);
                             let dHouseNum = null; 
@@ -10504,7 +10544,7 @@ function buildNadiDbaMixer() {
                             dispNums = [...new Set(dispNums)].filter(x => !isNaN(x)).sort((a,b) => a-b);
                             if (dispNums.length > 0) {
                                 let dispStr = dispNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === dHouseNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
-                                combinedParts.push(dispStr);
+                                combinedParts.push(`<span style="display: inline-block; white-space: nowrap;"><span style="color:#10b981; font-weight:bold;">${dispShort} [ </span>${dispStr}<span style="color:#10b981; font-weight:bold;"> ]</span></span>`);
                             }
                         }
                     }
@@ -10546,7 +10586,7 @@ function buildNadiDbaMixer() {
                         });
                     }
 
-                    const processPlanets = (pList) => {
+                    const processPlanets = (pList, bOpen, bClose) => {
                         if (pList.length === 0) return;
                         
                         const shortNames = {
@@ -10561,7 +10601,7 @@ function buildNadiDbaMixer() {
                                 let short = shortNames[pName] || pName.substring(0,2);
                                 symbols.push(`<span style="border: 1px solid #10b981; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #10b981; display: inline-block; margin: 1px;">${short}</span>`);
                             });
-                            combinedParts.push(symbols.join(" "));
+                            combinedParts.push(`<span style="color:#10b981; font-weight:bold;">${bOpen} </span>` + symbols.join(" ") + `<span style="color:#10b981; font-weight:bold;"> ${bClose}</span>`);
                         } else {
                             pList.forEach(pName => {
                                 let pNums = [];
@@ -10587,7 +10627,7 @@ function buildNadiDbaMixer() {
                                 if (pNums.length > 0) {
                                     let formatted = pNums.map(n => formatNadiHighlightNums(String(n), hideUnselected, ent, n === placedNum)).join("<span style='color:#ecfdf5; margin:0 2px; opacity:0.6;'>,</span>");
                                     let short = shortNames[pName] || pName.substring(0,2);
-                                    let finalStr = `<span style="display: inline-block; white-space: nowrap;"><span style="color:#10b981; font-weight:bold;">${short} ( </span>${formatted}<span style="color:#10b981; font-weight:bold;"> )</span></span>`;
+                                    let finalStr = `<span style="display: inline-block; white-space: nowrap;"><span style="color:#10b981; font-weight:bold;">${short} ${bOpen} </span>${formatted}<span style="color:#10b981; font-weight:bold;"> ${bClose}</span></span>`;
                                     combinedParts.push(finalStr);
                                 }
                             });
@@ -10595,11 +10635,11 @@ function buildNadiDbaMixer() {
                     };
 
                     if (window.__nadiDbaRaKeAspect) {
-                        processPlanets(aspectingPlanets);
+                        processPlanets(aspectingPlanets, "{", "}");
                     }
 
                     if (window.__nadiDbaRaKeConjunct) {
-                        processPlanets(conjunctPlanets);
+                        processPlanets(conjunctPlanets, "(", ")");
                     }
 
                     combinedParts = combinedParts.filter(part => part && part !== "-");
@@ -10706,9 +10746,32 @@ function buildNadiDbaMixer() {
 
         // "Unt O" Original Logic
         if (window.__nadiDbaUntenented) {
-            hideSlNums = planetHasDollar;
-            hideStarSubNums = subHasDollar;
-            hideStarSsNums = ssHasDollar;
+            // Planet Level
+            if (planet && sl && planet === sl) {
+                hidePlanetNums = false;
+                hideSlNums = true;
+            } else {
+                hidePlanetNums = false;
+                hideSlNums = planetHasDollar;
+            }
+
+            // Sublord Level
+            if (sub && starOfSub && sub === starOfSub) {
+                hideSubNums = false;
+                hideStarSubNums = true;
+            } else {
+                hideSubNums = false;
+                hideStarSubNums = subHasDollar;
+            }
+
+            // Sub-Sub Level
+            if (ss && starOfSs && ss === starOfSs) {
+                hideSsNums = false;
+                hideStarSsNums = true;
+            } else {
+                hideSsNums = false;
+                hideStarSsNums = ssHasDollar;
+            }
         } 
         // "Unt X" New Logic
         else if (window.__nadiDbaUntenentedX) {
@@ -10898,6 +10961,12 @@ function buildNadiDbaMixer() {
     }
 
     innerWrap.appendChild(table);
+
+    // --- ADD LEGENDS ---
+    let legendsDiv = document.createElement("div");
+    legendsDiv.style = "margin-top: 15px; padding: 12px; background: #010a08; border: 1px dashed #10b981; border-radius: 8px; color: #ecfdf5; font-size: 14px; text-align: center; font-weight: bold;";
+    legendsDiv.innerHTML = "<span style='color:#10b981;'>( )</span> Common Bracket means Conjuction &nbsp;|&nbsp; <span style='color:#10b981;'>{ }</span> Flower Bracket means Aspect &nbsp;|&nbsp; <span style='color:#10b981;'>[ ]</span> Box Bracket means Dispositor";
+    innerWrap.appendChild(legendsDiv);
 }
 
 // Attach the new tool to the main rendering cycle
